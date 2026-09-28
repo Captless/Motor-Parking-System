@@ -1,0 +1,136 @@
+import { useEffect, useState } from 'react';
+import { create, getActive, getById, checkout, markPaid, markUnpaid, getDailyStats } from '../../db/parkingRepository';
+import type { DailyStats, ParkingTransaction } from '../../types/parking';
+import { formatPeso } from '../../lib/currency';
+import { formatDuration, formatTime, formatFullDate } from '../../lib/dates';
+
+export default function Operations() {
+  const [stats, setStats] = useState<DailyStats | null>(null);
+  const [list, setList] = useState<ParkingTransaction[]>([]);
+  const [plate, setPlate] = useState('');
+  const [q, setQ] = useState('');
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const [sel, setSel] = useState<ParkingTransaction | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = async () => {
+    try {
+      const [s, a] = await Promise.all([getDailyStats(), getActive(q)]);
+      setStats(s); setList(a);
+    } catch (e: any) { setErr(String(e.message ?? e)); }
+  };
+  useEffect(() => { refresh(); }, [q]);
+
+  const park = async () => {
+    setMsg(''); setBusy(true);
+    try {
+      const t = await create({ plateNumber: plate });
+      setPlate(''); setMsg(`Parked ${t.plateNumber}.`);
+      await refresh();
+    } catch (e: any) { setMsg(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const togglePaid = async (t: ParkingTransaction) => {
+    try {
+      if (t.paymentStatus === 'paid') await markUnpaid(t.id);
+      else await markPaid(t.id);
+      await refresh();
+      if (sel?.id === t.id) setSel((await getById(t.id)) ?? null);
+    } catch (e: any) { setMsg(e.message); }
+  };
+
+  const doCheckout = async () => {
+    if (!sel) return;
+    try {
+      await checkout(sel.id);
+      setSel(null);
+      setMsg(`Checked out ${sel.plateNumber}.`);
+      await refresh();
+    } catch (e: any) { setMsg(e.message); }
+  };
+
+  if (err) return <p className="counter-error">{err}</p>;
+
+  return (
+    <div className="counter">
+      <section className="counter-head" aria-live="polite">
+        {stats ? (
+          <>
+            <p className="counter-date">{formatFullDate(Date.now())}</p>
+            <p className="counter-number">{stats.parked}</p>
+            <p className="counter-caption">Parked now</p>
+            <p className="counter-collected">{formatPeso(stats.collectedToday)} collected today</p>
+            {(() => {
+              const unpaid = list.filter(t => t.paymentStatus !== 'paid').reduce((s, t) => s + t.fee, 0);
+              return (<p className="counter-unpaid-line">Unpaid {formatPeso(unpaid)}</p>);
+            })()}
+          </>
+        ) : <p className="counter-sub">Loading…</p>}
+      </section>
+
+      <section className="counter-entry" aria-label="Park a motorcycle">
+        <label className="counter-label" htmlFor="plate">Plate number</label>
+        <input
+          id="plate" className="counter-input" value={plate}
+          onChange={e => setPlate(e.target.value)} placeholder="ENTER PLATE"
+          autoCapitalize="characters" autoComplete="off"
+          onKeyDown={e => { if (e.key === 'Enter') park(); }}
+        />
+        <button className="counter-park" onClick={park} disabled={busy || !plate.trim()}>
+          Park
+        </button>
+        {msg && <p className="counter-msg">{msg}</p>}
+      </section>
+
+      <section className="counter-queue" aria-label="Parked queue">
+        <div className="counter-queue-head">
+          <h2>Queue{stats ? ` (${stats.parked})` : ''}</h2>
+          <input
+            className="counter-search" value={q}
+            onChange={e => setQ(e.target.value)} placeholder="Search plate…"
+            aria-label="Search parked plates"
+          />
+        </div>
+        {list.length === 0
+          ? <p className="counter-empty">{q ? 'No match. Try another plate.' : 'Queue empty. Park the next bike above.'}</p>
+          : <div className="counter-queue-list">
+            {list.map(t => (
+            <div key={t.id} className="counter-row">
+              <div className="counter-row-top">
+                <span className="counter-plate">{t.plateNumber}</span>
+                <span className={`counter-status ${t.paymentStatus === 'paid' ? 'is-paid' : ''}`}>{t.paymentStatus === 'paid' ? 'Paid ✓' : 'Unpaid'}</span>
+                <span className="counter-meta">{formatDuration(t.checkInAt)} · {formatPeso(t.fee)}</span>
+              </div>
+              <div className="counter-row-actions">
+                <button
+                  className="counter-pay"
+                  onClick={() => togglePaid(t)}
+                  aria-pressed={t.paymentStatus === 'paid'}
+                >
+                  {t.paymentStatus === 'paid' ? 'Undo' : 'Paid'}
+                </button>
+                <button className="counter-out" onClick={() => setSel(t)}>
+                  Out
+                </button>
+              </div>
+            </div>
+            ))}
+          </div>}
+      </section>
+
+      {sel && (
+        <div className="counter-sheet-backdrop" onClick={() => setSel(null)}>
+          <div className="counter-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-label={`Check out ${sel.plateNumber}`}>
+            <p className="counter-sheet-plate">{sel.plateNumber}</p>
+            <p className="counter-sheet-sub">In {formatTime(sel.checkInAt)} · {formatDuration(sel.checkInAt)} · {formatPeso(sel.fee)} · {sel.paymentStatus.toUpperCase()}</p>
+            <p className="counter-msg">Confirm checkout for {sel.plateNumber}?</p>
+            <button className="counter-park" onClick={doCheckout}>Confirm checkout</button>
+            <button className="counter-link muted" onClick={() => setSel(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

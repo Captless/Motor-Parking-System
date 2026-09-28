@@ -1,0 +1,108 @@
+@tailwind base; @tailwind components; @tailwind utilities;
+body { @apply bg-white text-gray-900; }
+.btn-primary { @apply w-full bg-gray-900 text-white text-lg font-semibold py-4 rounded-xl active:bg-gray-700 disabled:opacity-50; }
+.input { @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-gray-900; }
+.card { @apply bg-white rounded-xl border border-gray-200 p-4; }
+.nav-link { @apply flex-1 text-center py-3 text-sm font-semibold text-gray-500; }
+.nav-link.active { @apply text-gray-900 border-t-2 border-gray-900; }
+
+/* Counter — single-column ops screen */
+.counter { @apply space-y-6; }
+.counter-head { @apply text-center pt-4; }
+.counter-number { font-size: 3.5rem; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.counter-caption { @apply text-sm font-semibold uppercase tracking-widest text-gray-500 mt-1; }
+.counter-collected { @apply text-lg font-bold mt-2; }
+.counter-unpaid { @apply text-amber-800; }
+.counter-unpaid-line { @apply text-lg font-bold mt-1 text-amber-800; font-variant-numeric: tabular-nums; }
+.counter-sub { @apply text-sm text-gray-500; }
+.counter-entry { @apply space-y-2; }
+.counter-label { @apply block text-xs font-semibold uppercase tracking-widest text-gray-500; }
+.counter-input { @apply w-full border-2 border-gray-900 rounded-xl px-4 text-2xl font-bold uppercase tracking-wide; height: 56px; font-variant-numeric: tabular-nums; }
+.counter-input:focus { @apply outline-none ring-2 ring-gray-900; }
+.counter-input::placeholder { @apply text-gray-300 font-semibold; }
+.counter-park { @apply w-full bg-gray-900 text-white text-xl font-bold rounded-xl active:bg-gray-700 disabled:opacity-40; min-height: 56px; }
+.counter-msg { @apply text-sm font-medium; }
+.counter-error { @apply text-red-600 font-medium; }
+.counter-queue-head { @apply flex items-center justify-between gap-2 mb-2; }
+.counter-queue-head h2 { @apply text-xs font-semibold uppercase tracking-widest text-gray-500; }
+.counter-search { @apply border border-gray-300 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-gray-900; }
+.counter-queue-list { max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid #e5e7eb; }
+.counter-row { @apply border-b border-gray-200 py-3 space-y-2; }
+.counter-row-top { @apply flex items-baseline gap-2; }
+.counter-plate { @apply text-xl font-extrabold tracking-wide; font-variant-numeric: tabular-nums; }
+.counter-status { @apply text-[11px] font-bold uppercase tracking-widest text-amber-800; }
+.counter-status.is-paid { @apply text-green-800; }
+.counter-meta { @apply text-sm text-gray-500 whitespace-nowrap ml-auto; font-variant-numeric: tabular-nums; }
+.counter-row-actions { @apply flex gap-2; }
+.counter-pay { @apply flex-1 py-3 rounded-xl font-semibold text-gray-900 border border-gray-300 bg-white active:bg-gray-100; min-height: 48px; }
+.counter-out { @apply flex-1 py-3 bg-gray-900 text-white rounded-xl font-bold active:bg-gray-700; min-height: 48px; }
+.counter-empty { @apply text-sm text-gray-500 py-4 text-center; }
+.counter-sheet-backdrop { @apply fixed inset-0 bg-black/50 flex items-end justify-center z-50; }
+.counter-sheet { @apply bg-white w-full max-w-md rounded-t-2xl p-5 space-y-3; }
+.counter-sheet-plate { @apply text-2xl font-extrabold tracking-wide; }
+.counter-sheet-sub { @apply text-sm text-gray-500; }
+.counter-link { @apply w-full py-2 text-sm font-semibold underline; }
+.counter-link.muted { @apply text-gray-500 font-normal no-underline; }
+
+@media (min-width: 1024px) {
+  .counter-number { font-size: 2.75rem; }
+  .counter-entry { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; }
+  .counter-entry .counter-label { width: 100%; }
+  .counter-entry .counter-input { flex: 1; min-width: 0; }
+  .counter-entry .counter-park { width: 200px; flex: none; }
+  .counter-entry .counter-msg { width: 100%; }
+  .counter-queue-list { max-height: 60vh; }
+  .counter-row { display: flex; align-items: center; gap: 1rem; }
+  .counter-row-top { flex: 1; min-width: 0; }
+  .counter-row-actions { flex: none; width: 280px; }
+  .counter-search { width: 12rem; }
+  .hist-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+  .hist-search { max-width: 28rem; }
+}
+
+/* Analytics — 7-day strip */
+.counter-date { @apply text-xs font-bold uppercase tracking-widest text-gray-400; }
+.counter-pipe { @apply text-sm font-semibold text-amber-800 mt-1; }
+.analytics { @apply space-y-2 border-y border-gray-200 py-3; }
+.analytics-title { @apply text-xs font-semibold uppercase tracking-widest text-gray-500; }
+.analytics-strip { display: flex; gap: 4px; }
+.analytics-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0; border-radius: 8px; }
+.analytics-bar.today .analytics-day { @apply text-gray-900 font-bold; }
+.analytics-bar.selected { @apply bg-gray-100; }
+.analytics-col { height: 56px; width: 100%; display: flex; align-items: end; justify-content: center; }
+.analytics-fill { width: 60%; max-width: 24px; min-height: 3px; border-radius: 3px; background: #d1d5db; }
+.analytics-bar.today .analytics-fill { background: #111827; }
+.analytics-day { font-size: 10px; @apply text-gray-500 uppercase tracking-wide; white-space: nowrap; }
+.analytics-val { font-size: 10px; @apply text-gray-500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.analytics-drill { @apply bg-gray-50 rounded-xl p-3 space-y-2; }
+.analytics-drill-head { @apply flex items-center justify-between gap-2; }
+.analytics-drill-title { @apply text-sm font-bold; }
+.analytics-drill-head .counter-link { width: auto; white-space: nowrap; }
+.analytics-drill-list { max-height: 30vh; overflow-y: auto; overscroll-behavior: contain; }
+.analytics-drill-row { @apply flex items-baseline justify-between gap-2 border-b border-gray-200 py-2; }
+.counter-plate.small { font-size: 1rem; }
+
+/* History — data table */
+.hist { @apply space-y-3; }
+.hist-head h1 { @apply text-xl font-bold; }
+.hist-sub { @apply text-sm text-gray-500; font-variant-numeric: tabular-nums; }
+.hist-toolbar { @apply flex flex-col gap-2; }
+.hist-search { @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900; }
+.hist-filter { @apply flex gap-1 bg-gray-100 rounded-xl p-1 w-fit; }
+.hist-chip { @apply px-4 py-2 rounded-lg text-sm font-semibold text-gray-500; min-height: 40px; }
+.hist-chip.active { @apply bg-gray-900 text-white; }
+.hist-empty { @apply text-sm text-gray-500 py-8 text-center; }
+.hist-scroll { @apply border border-gray-200 rounded-xl overflow-auto; max-height: 60vh; }
+.hist-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.hist-table thead th { @apply text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 bg-gray-50; position: sticky; top: 0; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; z-index: 1; }
+.hist-table tbody td { padding: 12px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
+.hist-table tbody tr:active { background: #f9fafb; }
+.hist-table td.plate { font-weight: 800; letter-spacing: 0.02em; }
+.hist-table td.num, .hist-table th.num { text-align: right; }
+.hist-table td.paid { @apply text-green-800 font-semibold; }
+.hist-table td.unpaid { @apply text-amber-800 font-semibold; }
+.hist-table tfoot td { padding: 12px; font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb; position: sticky; bottom: 0; }
+.hist-batch { margin-bottom: 12px; min-width: 560px; }
+.hist-batch:last-of-type { margin-bottom: 0; }
+.hist-batch-head { @apply flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-700 border border-gray-200; font-variant-numeric: tabular-nums; }
+.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; }
