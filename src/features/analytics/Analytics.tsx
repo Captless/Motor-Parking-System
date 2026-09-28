@@ -28,27 +28,30 @@ export default function Analytics() {
       <div><h1 className="text-xl font-bold">Analytics</h1>
         <p className="hist-sub">{formatFullDate(Date.now())} · {formatPeso(today)} today</p></div>
       <div className="kpi-grid">
-        <div className="kpi"><p className="kpi-val">{formatPeso(a.totalCollected)}</p><p className={`kpi-delta ${rev.cls}`}>{rev.text}</p><p className="kpi-label">revenue · 7 days</p></div>
+        <div className="kpi"><p className="kpi-val money">{formatPeso(a.totalCollected)}</p><p className={`kpi-delta ${rev.cls}`}>{rev.text}</p><p className="kpi-label">revenue · 7 days</p></div>
         <div className="kpi"><p className="kpi-val">{a.totalEntries}</p><p className={`kpi-delta ${ent.cls}`}>{ent.text}</p><p className="kpi-label">bikes · 7 days</p></div>
         <div className="kpi"><p className="kpi-val">{a.peakHour ? fmtHour(a.peakHour.hour) : '—'}</p><p className="kpi-delta">{a.peakHour ? `${a.peakHour.count} arrivals` : 'no data yet'}</p><p className="kpi-label">peak hour</p></div>
-        <div className="kpi"><p className="kpi-val">{formatPeso(a.outstanding.amount)}</p><p className="kpi-delta">{a.outstanding.count} bike{a.outstanding.count === 1 ? '' : 's'} unpaid</p><p className="kpi-label">outstanding</p></div>
+        <div className="kpi warn-card"><p className="kpi-val warn">{formatPeso(a.outstanding.amount)}</p><p className="kpi-delta">{a.outstanding.count} bike{a.outstanding.count === 1 ? '' : 's'} unpaid</p><p className="kpi-label">outstanding</p></div>
       </div>
       <section className="chart" aria-label="Revenue last 7 days">
         <p className="analytics-title">Revenue · last 7 days · avg {formatPeso(a.prevDailyAvg)}/day last wk</p>
         {a.totalCompleted === 0 && a.totalEntries === 0
           ? <p className="counter-empty">No activity in range.</p>
-          : <div className="chart-bars">
-            {a.days.map(d => (
-              <div key={d.day} className={`chart-bar${isToday(d.day) ? ' today' : ''}`}>
+          : <><div className="chart-bars">
+            {a.days.map(d => {
+              const wd = new Date(d.day).getDay(); const weekend = wd === 0 || wd === 6;
+              return (
+              <div key={d.day} className={`chart-bar${isToday(d.day) ? ' today' : ''}${weekend ? ' weekend' : ''}`}>
                 <span className="chart-val">{d.collected > 0 ? formatPeso(d.collected) : '—'}</span>
                 <span className="chart-plot">
                   <span className="chart-avg" style={{ bottom: `${Math.min(100, Math.round((a.prevDailyAvg / max) * 100))}%` }} />
                   <span className="chart-col"><span className="chart-fill" style={{ height: `${Math.max(3, Math.round((d.collected / max) * 100))}%` }} /></span>
                 </span>
                 <span className="analytics-day">{formatDayLabel(d.day)}</span>
-              </div>
-            ))}
-          </div>}
+              </div> );
+            })}
+          </div>
+          <p className="counter-sub">shaded bars = weekend · dashed line = last-wk daily avg</p></>}
       </section>
     </div>
   );

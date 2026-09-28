@@ -15,7 +15,7 @@ export default function Settings() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' })); a.download = f; a.click(); };
   const doImport = async (file: File) => { try { const j = JSON.parse(await file.text()); if (!confirm('Replace all local data with this backup?')) return; await importBackup(j); setMsg('Backup restored.'); loadMeta(); } catch (e: any) { setMsg(e.message); } };
   const doClear = async () => { if (!confirmClear) { setConfirmClear(true); return; } await clearAll(); setConfirmClear(false); setMsg('All data cleared.'); loadMeta(); };
-  return (<div className="space-y-4 lg:max-w-xl"><h1 className="text-xl font-bold">Settings</h1>
+  return (<div className="space-y-4"><h1 className="text-xl font-bold">Settings</h1>
     {msg && <p className="text-sm font-medium">{msg}</p>}
     <div className="card space-y-3"><p className="font-semibold">Parking Fee</p>
       <label className="block text-sm font-semibold">Fee (₱)<input className="input mt-1" inputMode="numeric" value={fee} onChange={e => setFee(e.target.value)} /></label>
