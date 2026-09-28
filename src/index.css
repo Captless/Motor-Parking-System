@@ -1,4 +1,6 @@
 @tailwind base; @tailwind components; @tailwind utilities;
+:root { --font-one: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+html, body, button, input, select, textarea, table { font-family: var(--font-one) !important; }
 body { @apply bg-white text-gray-900; }
 .btn-primary { @apply w-full bg-gray-900 text-white text-lg font-semibold py-4 rounded-xl active:bg-gray-700 disabled:opacity-50; }
 .input { @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-gray-900; }
@@ -63,24 +65,22 @@ body { @apply bg-white text-gray-900; }
 /* Analytics — 7-day strip */
 .counter-date { @apply text-xs font-bold uppercase tracking-widest text-gray-400; }
 .counter-pipe { @apply text-sm font-semibold text-amber-800 mt-1; }
-.analytics { @apply space-y-2 border-y border-gray-200 py-3; }
 .analytics-title { @apply text-xs font-semibold uppercase tracking-widest text-gray-500; }
-.analytics-strip { display: flex; gap: 4px; }
-.analytics-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0; border-radius: 8px; }
-.analytics-bar.today .analytics-day { @apply text-gray-900 font-bold; }
-.analytics-bar.selected { @apply bg-gray-100; }
-.analytics-col { height: 56px; width: 100%; display: flex; align-items: end; justify-content: center; }
-.analytics-fill { width: 60%; max-width: 24px; min-height: 3px; border-radius: 3px; background: #d1d5db; }
-.analytics-bar.today .analytics-fill { background: #111827; }
 .analytics-day { font-size: 10px; @apply text-gray-500 uppercase tracking-wide; white-space: nowrap; }
-.analytics-val { font-size: 10px; @apply text-gray-500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.analytics-drill { @apply bg-gray-50 rounded-xl p-3 space-y-2; }
-.analytics-drill-head { @apply flex items-center justify-between gap-2; }
-.analytics-drill-title { @apply text-sm font-bold; }
-.analytics-drill-head .counter-link { width: auto; white-space: nowrap; }
-.analytics-drill-list { max-height: 30vh; overflow-y: auto; overscroll-behavior: contain; }
-.analytics-drill-row { @apply flex items-baseline justify-between gap-2 border-b border-gray-200 py-2; }
 .counter-plate.small { font-size: 1rem; }
+
+/* Analytics — KPIs + revenue chart */
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kpi { @apply border border-gray-200 rounded-xl p-3; }
+.kpi-val { @apply text-2xl font-extrabold; font-variant-numeric: tabular-nums; }
+.kpi-label { @apply text-[11px] font-bold uppercase tracking-widest text-gray-500; }
+.chart { @apply space-y-2 border-y border-gray-200 py-3; }
+.chart-bars { display: flex; gap: 4px; }
+.chart-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.chart-val { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-col { height: 110px; width: 100%; display: flex; align-items: end; justify-content: center; }
+.chart-fill { width: 60%; max-width: 32px; min-height: 3px; border-radius: 3px; background: #d1d5db; }
+.chart-bar.today .chart-fill { background: #111827; }
 
 /* History — data table */
 .hist { @apply space-y-3; }

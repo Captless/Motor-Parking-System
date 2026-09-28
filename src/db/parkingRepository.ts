@@ -30,6 +30,29 @@ export async function getDayTransactions(day: number): Promise<ParkingTransactio
   const list = await db.transactions.where('status').equals('completed').reverse().sortBy('checkOutAt');
   return list.filter(t => inDay(t.checkOutAt, day));
 }
+export interface RangeAnalytics { days: DayStats[]; totalCollected: number; avgPerDay: number; paidRate: number; avgStayMin: number; bestDay: DayStats; worstDay: DayStats; totalEntries: number; totalCompleted: number; }
+export async function getRangeAnalytics(now = Date.now()): Promise<RangeAnalytics> {
+  const days = await getWeekStats(now);
+  const all = await db.transactions.toArray();
+  const from = startOfDay(now) - 6 * 86400000;
+  const inRange = (ts: number | undefined): boolean => ts != null && ts >= from && ts < startOfDay(now) + 86400000;
+  const completed = all.filter(t => t.status === 'completed' && inRange(t.checkOutAt));
+  const paid = completed.filter(t => t.paymentStatus === 'paid').length;
+  const stays = completed.filter(t => t.checkOutAt != null).map(t => t.checkOutAt! - t.checkInAt);
+  const totalCollected = days.reduce((s, d) => s + d.collected, 0);
+  let bestDay = days[0]; let worstDay = days[0];
+  for (const d of days) { if (d.collected > bestDay.collected) bestDay = d; if (d.collected < worstDay.collected) worstDay = d; }
+  return {
+    days,
+    totalCollected,
+    avgPerDay: Math.round(totalCollected / 7),
+    paidRate: completed.length === 0 ? 0 : paid / completed.length,
+    avgStayMin: stays.length === 0 ? 0 : Math.round(stays.reduce((s, m) => s + m, 0) / stays.length / 60000),
+    bestDay, worstDay,
+    totalEntries: days.reduce((s, d) => s + d.entries, 0),
+    totalCompleted: days.reduce((s, d) => s + d.completed, 0),
+  };
+}
 
 export async function getSettings(): Promise<AppSettings> {
   await ensureSeed();
