@@ -30,27 +30,38 @@ export async function getDayTransactions(day: number): Promise<ParkingTransactio
   const list = await db.transactions.where('status').equals('completed').reverse().sortBy('checkOutAt');
   return list.filter(t => inDay(t.checkOutAt, day));
 }
-export interface RangeAnalytics { days: DayStats[]; totalCollected: number; avgPerDay: number; paidRate: number; avgStayMin: number; bestDay: DayStats; worstDay: DayStats; totalEntries: number; totalCompleted: number; }
+export interface PeakHour { hour: number; count: number; }
+export interface Outstanding { count: number; amount: number; }
+export interface RangeAnalytics { days: DayStats[]; totalCollected: number; totalEntries: number; totalCompleted: number; prevCollected: number; prevEntries: number; revenueDeltaPct: number | null; entriesDeltaPct: number | null; prevDailyAvg: number; peakHour: PeakHour | null; outstanding: Outstanding; }
+const deltaPct = (cur: number, prev: number): number | null => prev === 0 ? null : Math.round(((cur - prev) / prev) * 100);
 export async function getRangeAnalytics(now = Date.now()): Promise<RangeAnalytics> {
-  const days = await getWeekStats(now);
-  const all = await db.transactions.toArray();
+  const [days, all] = await Promise.all([getWeekStats(now), db.transactions.toArray()]);
+  const weekAgo = now - 7 * 86400000;
+  const prev = await getWeekStats(weekAgo);
+  const prevCollected = prev.reduce((s, d) => s + d.collected, 0);
+  const prevEntries = prev.reduce((s, d) => s + d.entries, 0);
   const from = startOfDay(now) - 6 * 86400000;
-  const inRange = (ts: number | undefined): boolean => ts != null && ts >= from && ts < startOfDay(now) + 86400000;
-  const completed = all.filter(t => t.status === 'completed' && inRange(t.checkOutAt));
-  const paid = completed.filter(t => t.paymentStatus === 'paid').length;
-  const stays = completed.filter(t => t.checkOutAt != null).map(t => t.checkOutAt! - t.checkInAt);
+  const to = startOfDay(now) + 86400000;
+  const hours = new Array(24).fill(0);
+  for (const t of all) {
+    if (t.checkInAt >= from && t.checkInAt < to) hours[new Date(t.checkInAt).getHours()]++;
+  }
+  let peakHour: PeakHour | null = null;
+  hours.forEach((c, h) => { if (c > 0 && (!peakHour || c > peakHour.count)) peakHour = { hour: h, count: c }; });
+  const open = all.filter(t => t.status === 'parked' && t.paymentStatus !== 'paid');
   const totalCollected = days.reduce((s, d) => s + d.collected, 0);
-  let bestDay = days[0]; let worstDay = days[0];
-  for (const d of days) { if (d.collected > bestDay.collected) bestDay = d; if (d.collected < worstDay.collected) worstDay = d; }
+  const totalEntries = days.reduce((s, d) => s + d.entries, 0);
   return {
     days,
     totalCollected,
-    avgPerDay: Math.round(totalCollected / 7),
-    paidRate: completed.length === 0 ? 0 : paid / completed.length,
-    avgStayMin: stays.length === 0 ? 0 : Math.round(stays.reduce((s, m) => s + m, 0) / stays.length / 60000),
-    bestDay, worstDay,
-    totalEntries: days.reduce((s, d) => s + d.entries, 0),
+    totalEntries,
     totalCompleted: days.reduce((s, d) => s + d.completed, 0),
+    prevCollected, prevEntries,
+    revenueDeltaPct: deltaPct(totalCollected, prevCollected),
+    entriesDeltaPct: deltaPct(totalEntries, prevEntries),
+    prevDailyAvg: Math.round(prevCollected / 7),
+    peakHour,
+    outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
   };
 }
 
@@ -80,6 +91,17 @@ export const getActive = (search = ''): Promise<ParkingTransaction[]> =>
     const q = normalizePlate(search); return q ? list.filter(t => t.plateNumber.includes(q)) : list;
   });
 export const getById = (id: string): Promise<ParkingTransaction | undefined> => db.transactions.get(id);
+export async function renamePlate(id: string, newPlate: string): Promise<ParkingTransaction> {
+  const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
+  if (tx.status !== 'parked') throw new Error('Only parked records can be edited.');
+  const plate = normalizePlate(newPlate);
+  if (!isValidPlate(newPlate)) throw new Error('Enter a valid plate number.');
+  if (plate === tx.plateNumber) return tx;
+  const dup = await db.transactions.where({ status: 'parked', plateNumber: plate }).first();
+  if (dup && dup.id !== id) throw new Error('This motorcycle is already parked.');
+  const next: ParkingTransaction = { ...tx, plateNumber: plate };
+  await db.transactions.put(next); return next;
+}
 export async function markPaid(id: string): Promise<ParkingTransaction> {
   const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
   if (tx.status !== 'parked') throw new Error('Only parked motorcycles can be marked paid.');

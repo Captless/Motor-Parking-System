@@ -32,6 +32,10 @@ body { @apply bg-white text-gray-900; }
 .counter-row { @apply border-b border-gray-200 py-3 space-y-2; }
 .counter-row-top { @apply flex items-baseline gap-2; }
 .counter-plate { @apply text-xl font-extrabold tracking-wide; font-variant-numeric: tabular-nums; }
+.counter-plate.editable { cursor: text; background: none; border: none; padding: 0; text-align: left; }
+.counter-plate-input { @apply border-2 border-gray-900 rounded-lg px-2 py-1 text-xl font-extrabold uppercase tracking-wide; width: 9rem; font-variant-numeric: tabular-nums; }
+.counter-plate-input:focus { @apply outline-none ring-2 ring-gray-900; }
+.counter-row-error { @apply text-sm font-semibold text-red-700; }
 .counter-status { @apply text-[11px] font-bold uppercase tracking-widest text-amber-800; }
 .counter-status.is-paid { @apply text-green-800; }
 .counter-meta { @apply text-sm text-gray-500 whitespace-nowrap ml-auto; font-variant-numeric: tabular-nums; }
@@ -73,12 +77,17 @@ body { @apply bg-white text-gray-900; }
 .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .kpi { @apply border border-gray-200 rounded-xl p-3; }
 .kpi-val { @apply text-2xl font-extrabold; font-variant-numeric: tabular-nums; }
+.kpi-delta { @apply text-xs font-bold text-gray-400; font-variant-numeric: tabular-nums; }
+.kpi-delta.up { @apply text-green-800; }
+.kpi-delta.down { @apply text-red-700; }
 .kpi-label { @apply text-[11px] font-bold uppercase tracking-widest text-gray-500; }
 .chart { @apply space-y-2 border-y border-gray-200 py-3; }
 .chart-bars { display: flex; gap: 4px; }
 .chart-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .chart-val { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.chart-col { height: 110px; width: 100%; display: flex; align-items: end; justify-content: center; }
+.chart-plot { height: 110px; width: 100%; position: relative; display: flex; align-items: end; justify-content: center; }
+.chart-avg { position: absolute; left: 0; right: 0; border-top: 2px dashed #9ca3af; }
+.chart-col { height: 100%; width: 100%; display: flex; align-items: end; justify-content: center; }
 .chart-fill { width: 60%; max-width: 32px; min-height: 3px; border-radius: 3px; background: #d1d5db; }
 .chart-bar.today .chart-fill { background: #111827; }
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { create, getActive, getById, checkout, markPaid, markUnpaid, getDailyStats } from '../../db/parkingRepository';
+import { useEffect, useRef, useState } from 'react';
+import { create, getActive, getById, checkout, markPaid, markUnpaid, renamePlate, getDailyStats } from '../../db/parkingRepository';
 import type { DailyStats, ParkingTransaction } from '../../types/parking';
 import { formatPeso } from '../../lib/currency';
 import { formatDuration, formatTime, formatFullDate } from '../../lib/dates';
@@ -13,6 +13,10 @@ export default function Operations() {
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<ParkingTransaction | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const [rowErr, setRowErr] = useState('');
+  const cancelRef = useRef(false);
 
   const refresh = async () => {
     try {
@@ -49,6 +53,16 @@ export default function Operations() {
       setMsg(`Checked out ${sel.plateNumber}.`);
       await refresh();
     } catch (e: any) { setMsg(e.message); }
+  };
+
+  const savePlate = async (t: ParkingTransaction) => {
+    if (cancelRef.current) { cancelRef.current = false; return; }
+    setRowErr('');
+    try {
+      const r = await renamePlate(t.id, draft);
+      setEditingId(null); setMsg(`Plate updated to ${r.plateNumber}.`); refresh();
+      if (sel?.id === t.id) setSel(r);
+    } catch (e: any) { setRowErr(e.message); }
   };
 
   if (err) return <p className="counter-error">{err}</p>;
@@ -99,10 +113,20 @@ export default function Operations() {
             {list.map(t => (
             <div key={t.id} className="counter-row">
               <div className="counter-row-top">
-                <span className="counter-plate">{t.plateNumber}</span>
+                {editingId === t.id ? (
+                  <input className="counter-plate-input" value={draft} autoFocus
+                    ref={el => { if (el) el.select(); }}
+                    onChange={e => setDraft(e.target.value)} aria-label="Edit plate number"
+                    autoCapitalize="characters" autoComplete="off"
+                    onBlur={() => savePlate(t)}
+                    onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { cancelRef.current = true; setEditingId(null); } }} />
+                ) : (
+                  <button className="counter-plate editable" onClick={() => { setEditingId(t.id); setDraft(t.plateNumber); setRowErr(''); }} aria-label={`Edit plate ${t.plateNumber}`}>{t.plateNumber}</button>
+                )}
                 <span className={`counter-status ${t.paymentStatus === 'paid' ? 'is-paid' : ''}`}>{t.paymentStatus === 'paid' ? 'Paid ✓' : 'Unpaid'}</span>
                 <span className="counter-meta">{formatDuration(t.checkInAt)} · {formatPeso(t.fee)}</span>
               </div>
+              {editingId === t.id && rowErr ? <p className="counter-row-error">{rowErr}</p> : null}
               <div className="counter-row-actions">
                 <button
                   className="counter-pay"
