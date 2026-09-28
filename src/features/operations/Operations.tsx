@@ -114,14 +114,14 @@ export default function Operations() {
             <div key={t.id} className="counter-row">
               <div className="counter-row-top">
                 {editingId === t.id ? (
-                  <input className="counter-plate-input" value={draft} autoFocus
-                    ref={el => { if (el) el.select(); }}
+                  <input className="counter-plate-input" value={draft} autoFocus style={{ width: `calc(${Math.max(draft.length, 1)}ch + ${Math.max(draft.length, 1) * 0.025}em)` }}
+                    ref={el => { if (el && !el.dataset.sel) { el.dataset.sel = '1'; el.select(); } }}
                     onChange={e => setDraft(e.target.value)} aria-label="Edit plate number"
                     autoCapitalize="characters" autoComplete="off"
                     onBlur={() => savePlate(t)}
                     onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { cancelRef.current = true; setEditingId(null); } }} />
                 ) : (
-                  <button className="counter-plate editable" onClick={() => { setEditingId(t.id); setDraft(t.plateNumber); setRowErr(''); }} aria-label={`Edit plate ${t.plateNumber}`}>{t.plateNumber}</button>
+                  <button className="counter-plate editable" title="Click to edit" onClick={() => { setEditingId(t.id); setDraft(t.plateNumber); setRowErr(''); }} aria-label={`Edit plate ${t.plateNumber}. Click to edit.`}>{t.plateNumber}</button>
                 )}
                 <span className={`counter-status ${t.paymentStatus === 'paid' ? 'is-paid' : ''}`}>{t.paymentStatus === 'paid' ? 'Paid ✓' : 'Unpaid'}</span>
                 <span className="counter-meta">{formatDuration(t.checkInAt)} · {formatPeso(t.fee)}</span>

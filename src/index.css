@@ -33,8 +33,8 @@ body { @apply bg-white text-gray-900; }
 .counter-row-top { @apply flex items-baseline gap-2; }
 .counter-plate { @apply text-xl font-extrabold tracking-wide; font-variant-numeric: tabular-nums; }
 .counter-plate.editable { cursor: text; background: none; border: none; padding: 0; text-align: left; }
-.counter-plate-input { @apply border-2 border-gray-900 rounded-lg px-2 py-1 text-xl font-extrabold uppercase tracking-wide; width: 9rem; font-variant-numeric: tabular-nums; }
-.counter-plate-input:focus { @apply outline-none ring-2 ring-gray-900; }
+.counter-plate-input { @apply text-xl font-extrabold uppercase tracking-wide; font-variant-numeric: tabular-nums; background: transparent; border: none; outline: none; padding: 0; margin: 0; border-radius: 0; line-height: inherit; field-sizing: content; }
+.counter-plate-input:focus { outline: none; box-shadow: none; }
 .counter-row-error { @apply text-sm font-semibold text-red-700; }
 .counter-status { @apply text-[11px] font-bold uppercase tracking-widest text-amber-800; }
 .counter-status.is-paid { @apply text-green-800; }
