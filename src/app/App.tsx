@@ -1,20 +1,7 @@
-import { useEffect } from 'react'; import { NavLink, Outlet } from 'react-router-dom'; import { useRegisterSW } from 'virtual:pwa-register/react';
-import { ToastProvider, useToast } from './toast'; import ErrorBoundary from './ErrorBoundary';
-function UpdateNotice() {
-  if (!import.meta.env.PROD) return null;
-  return <UpdateNoticeInner />;
-}
-function UpdateNoticeInner() {
-  const toast = useToast();
-  const { needRefresh } = useRegisterSW();
-  useEffect(() => {
-    if (needRefresh) toast.err('Update available — restart the app to apply.');
-  }, [needRefresh, toast]);
-  return null;
-}
+import { NavLink, Outlet } from 'react-router-dom';
+import { ToastProvider } from './toast'; import ErrorBoundary from './ErrorBoundary';
 export default function App() {
   return (<ToastProvider><div className="mx-auto min-h-screen flex flex-col max-w-md lg:max-w-3xl">
-    <UpdateNotice />
     <main className="flex-1 p-4 pb-[calc(var(--tabbar-h)+0.25rem+env(safe-area-inset-bottom))] lg:p-8 lg:pb-[calc(var(--tabbar-h)+2rem+env(safe-area-inset-bottom))]"><ErrorBoundary><Outlet /></ErrorBoundary></main>
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 mx-auto flex max-w-md lg:max-w-3xl">
       <NavLink to="/" end className={({isActive})=>`nav-link${isActive?' active':''}`}>Operations</NavLink>
