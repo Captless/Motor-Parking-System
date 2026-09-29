@@ -35,7 +35,7 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .counter-queue-head h2 { @apply text-sm font-semibold uppercase tracking-widest text-gray-500; }
 .counter-search { @apply border border-gray-300 rounded-lg px-3 py-2.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-gray-900; }
 .counter-queue-list { border-top: 1px solid #e5e7eb; }
-.counter-queue-head { position: sticky; top: 0; background: #fff; z-index: 5; padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.counter-queue-head { position: sticky; top: 0; background: #fff; z-index: 5; padding-top: 0.75rem; padding-top: calc(0.75rem + env(safe-area-inset-top)); padding-bottom: 0.75rem; }
 .counter-row { @apply border-b border-gray-200 py-3 space-y-2; }
 .counter-row-top { @apply flex items-baseline gap-2; }
 .counter-plate { @apply text-xl font-extrabold tracking-wide; font-variant-numeric: tabular-nums; }
@@ -54,7 +54,7 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .hist-undo { @apply px-3 py-2 rounded-lg text-xs font-semibold text-gray-500 active:bg-gray-100 whitespace-nowrap; min-height: 40px; }
 .counter-empty { @apply text-sm text-gray-500 py-4 text-center; }
 .counter-sheet-backdrop { @apply fixed inset-0 bg-black/50 flex items-end justify-center z-50; }
-.counter-sheet { @apply bg-white w-full max-w-md rounded-t-2xl p-5 space-y-3; }
+.counter-sheet { @apply bg-white w-full max-w-md rounded-t-2xl p-5 space-y-3; padding-bottom: 1.25rem; padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
 .counter-sheet-plate { @apply text-2xl font-extrabold tracking-wide; }
 .counter-sheet-sub { @apply text-sm text-gray-500; }
 .counter-link { @apply w-full py-2 text-sm font-semibold underline; }
