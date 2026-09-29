@@ -48,7 +48,7 @@ export async function getRangeAnalytics(now = Date.now()): Promise<RangeAnalytic
   }
   let peakHour: PeakHour | null = null;
   hours.forEach((c, h) => { if (c > 0 && (!peakHour || c > peakHour.count)) peakHour = { hour: h, count: c }; });
-  const open = all.filter(t => t.status === 'parked' && t.paymentStatus !== 'paid');
+  const open = all.filter(t => t.paymentStatus !== 'paid');
   const totalCollected = days.reduce((s, d) => s + d.collected, 0);
   const totalEntries = days.reduce((s, d) => s + d.entries, 0);
   return {
@@ -104,13 +104,11 @@ export async function renamePlate(id: string, newPlate: string): Promise<Parking
 }
 export async function markPaid(id: string): Promise<ParkingTransaction> {
   const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
-  if (tx.status !== 'parked') throw new Error('Only parked motorcycles can be marked paid.');
   const next: ParkingTransaction = { ...tx, paymentStatus: 'paid', paidAt: Date.now() };
   await db.transactions.put(next); return next;
 }
 export async function markUnpaid(id: string): Promise<ParkingTransaction> {
   const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
-  if (tx.status !== 'parked') throw new Error('Only parked motorcycles can be marked unpaid.');
   const next: ParkingTransaction = { ...tx, paymentStatus: 'unpaid', paidAt: undefined };
   await db.transactions.put(next); return next;
 }

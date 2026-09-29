@@ -130,14 +130,15 @@ export default function Operations() {
               {editingId === t.id && rowErr ? <p className="counter-row-error">{rowErr}</p> : null}
               <div className="counter-row-actions">
                 <button
-                  className="counter-pay"
+                  className={`counter-toggle${t.paymentStatus === 'paid' ? ' is-paid' : ''}`}
                   onClick={() => togglePaid(t)}
                   aria-pressed={t.paymentStatus === 'paid'}
+                  aria-label={t.paymentStatus === 'paid' ? `Mark ${t.plateNumber} unpaid` : `Mark ${t.plateNumber} paid`}
                 >
-                  {t.paymentStatus === 'paid' ? 'Undo' : 'Paid'}
+                  {t.paymentStatus === 'paid' ? 'Paid ✓' : 'Mark Paid'}
                 </button>
                 <button className="counter-out" onClick={() => setSel(t)}>
-                  Out
+                  Check Out
                 </button>
               </div>
             </div>
@@ -151,6 +152,7 @@ export default function Operations() {
             <p className="counter-sheet-plate">{sel.plateNumber}</p>
             <p className="counter-sheet-sub">In {formatTime(sel.checkInAt)} · {formatDuration(sel.checkInAt)} · {formatPeso(sel.fee)} · {sel.paymentStatus.toUpperCase()}</p>
             <p className="counter-msg">Confirm checkout for {sel.plateNumber}?</p>
+            {sel.paymentStatus !== 'paid' && <p className="counter-sub">Unpaid — can settle later from History.</p>}
             <button className="counter-park" onClick={doCheckout}>Confirm checkout</button>
             <button className="counter-link muted" onClick={() => setSel(null)}>Cancel</button>
           </div>

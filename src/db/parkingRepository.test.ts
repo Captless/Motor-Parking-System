@@ -16,9 +16,14 @@ describe('parking', () => {
     const s = await R.getDailyStats(); expect(s.collectedToday).toBe(20); expect(s.completedToday).toBe(2);
     const h = await R.getHistory(); expect(h.find(t => t.id === b.id)?.paymentStatus).toBe('unpaid');
   });
-  it('markPaid on completed throws, double checkout throws', async () => {
+  it('settle after checkout: markPaid on completed attributes revenue to settle day', async () => {
     const t = await R.create({ plateNumber: 'C9' }); await R.checkout(t.id);
-    await expect(R.markPaid(t.id)).rejects.toThrow();
+    expect((await R.getDailyStats()).collectedToday).toBe(0);
+    const s = await R.markPaid(t.id);
+    expect(s.status).toBe('completed'); expect(s.paymentStatus).toBe('paid'); expect(s.paidAt).toBeDefined();
+    expect((await R.getDailyStats()).collectedToday).toBe(20);
+    await R.markUnpaid(t.id);
+    expect((await R.getById(t.id))?.paymentStatus).toBe('unpaid');
     await expect(R.checkout(t.id)).rejects.toThrow();
   });
   it('fee snapshot survives setting change', async () => { const t = await R.create({ plateNumber: 'C3' }); await R.updateSettings({ parkingFee: 25 }); expect((await R.getById(t.id))?.fee).toBe(20); });
@@ -70,7 +75,7 @@ describe('parking', () => {
     expect(r.entriesDeltaPct).toBe(300);
     expect(r.prevDailyAvg).toBe(Math.round(20 / 7));
     expect(r.peakHour).toEqual({ hour: 8, count: 2 });
-    expect(r.outstanding).toEqual({ count: 1, amount: 20 });
+    expect(r.outstanding).toEqual({ count: 2, amount: 40 });
   });
   it('range analytics empty-safe with null deltas', async () => {
     const r = await R.getRangeAnalytics();

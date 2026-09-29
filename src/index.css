@@ -44,10 +44,12 @@ body { @apply bg-white text-gray-900; }
 .counter-row-error { @apply text-sm font-semibold text-red-700; }
 .counter-status { @apply text-[11px] font-bold uppercase tracking-widest text-amber-800; }
 .counter-status.is-paid { @apply text-green-800; }
+.counter-toggle { @apply flex-1 py-3 rounded-xl font-semibold text-gray-900 border border-gray-300 bg-white active:bg-gray-100; min-height: 48px; }
+.counter-toggle.is-paid { @apply text-green-800 border-green-600 bg-green-50 active:bg-green-100; }
 .counter-meta { @apply text-sm text-gray-500 whitespace-nowrap ml-auto; font-variant-numeric: tabular-nums; }
 .counter-row-actions { @apply flex gap-2; }
-.counter-pay { @apply flex-1 py-3 rounded-xl font-semibold text-gray-900 border border-gray-300 bg-white active:bg-gray-100; min-height: 48px; }
 .counter-out { @apply flex-1 py-3 bg-gray-900 text-white rounded-xl font-bold active:bg-gray-700; min-height: 48px; }
+.hist-settle { @apply px-3 py-2 rounded-lg text-xs font-bold bg-gray-900 text-white active:bg-gray-700 whitespace-nowrap; min-height: 40px; }
 .counter-empty { @apply text-sm text-gray-500 py-4 text-center; }
 .counter-sheet-backdrop { @apply fixed inset-0 bg-black/50 flex items-end justify-center z-50; }
 .counter-sheet { @apply bg-white w-full max-w-md rounded-t-2xl p-5 space-y-3; }
