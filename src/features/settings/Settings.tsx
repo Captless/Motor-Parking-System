@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getSettings, updateSettings, exportBackup, importBackup, clearAll, getActive, getHistory } from '../../db/parkingRepository';
+import { useToast } from '../../app/toast';
 export default function Settings() {
-  const [fee, setFee] = useState(''); const [msg, setMsg] = useState(''); const [confirmClear, setConfirmClear] = useState(false);
+  const toast = useToast();
+  const [fee, setFee] = useState(''); const [confirmClear, setConfirmClear] = useState(false);
   const [counts, setCounts] = useState(''); const [storage, setStorage] = useState('');
   const loadMeta = async () => {
     const [a, h, b] = await Promise.all([getActive(), getHistory(), exportBackup()]);
@@ -9,14 +11,13 @@ export default function Settings() {
     const bytes = new Blob([JSON.stringify(b)]).size;
     setStorage(bytes < 1024 ? `backup ~${bytes} bytes` : `backup ~${(bytes / 1024).toFixed(1)} KB`);
   };
-  useEffect(() => { getSettings().then(s => setFee(String(s.parkingFee))).catch(e => setMsg(String(e.message ?? e))); loadMeta(); }, []);
-  const save = async () => { try { await updateSettings({ parkingFee: Number(fee) }); setMsg('Parking fee saved.'); } catch (e: any) { setMsg(e.message); } };
+  useEffect(() => { getSettings().then(s => setFee(String(s.parkingFee))).catch(e => toast.err(String(e.message ?? e))); loadMeta(); }, []);
+  const save = async () => { try { await updateSettings({ parkingFee: Number(fee) }); toast.ok('Parking fee saved.'); } catch (e: any) { toast.err(e.message); } };
   const doExport = async () => { const b = await exportBackup(); const d = new Date(); const f = `motor-parking-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' })); a.download = f; a.click(); };
-  const doImport = async (file: File) => { try { const j = JSON.parse(await file.text()); if (!confirm('Replace all local data with this backup?')) return; await importBackup(j); setMsg('Backup restored.'); loadMeta(); } catch (e: any) { setMsg(e.message); } };
-  const doClear = async () => { if (!confirmClear) { setConfirmClear(true); return; } await clearAll(); setConfirmClear(false); setMsg('All data cleared.'); loadMeta(); };
+  const doImport = async (file: File) => { try { const j = JSON.parse(await file.text()); if (!confirm('Replace all local data with this backup?')) return; await importBackup(j); toast.ok('Backup restored.'); loadMeta(); } catch (e: any) { toast.err(e.message); } };
+  const doClear = async () => { if (!confirmClear) { setConfirmClear(true); return; } await clearAll(); setConfirmClear(false); toast.ok('All data cleared.'); loadMeta(); };
   return (<div className="space-y-4"><h1 className="text-xl font-bold">Settings</h1>
-    {msg && <p className="text-sm font-medium">{msg}</p>}
     <div className="card space-y-3"><p className="font-semibold">Parking Fee</p>
       <label className="block text-sm font-semibold">Fee (₱)<input className="input mt-1" inputMode="numeric" value={fee} onChange={e => setFee(e.target.value)} /></label>
       <button className="btn-primary" onClick={save}>Save</button></div>

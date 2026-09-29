@@ -26,6 +26,9 @@ body { @apply bg-white text-gray-900; }
 .counter-input::placeholder { @apply text-gray-300 font-semibold; }
 .counter-park { @apply w-full bg-gray-900 text-white text-xl font-bold rounded-xl active:bg-gray-700 disabled:opacity-40; min-height: 56px; }
 .counter-msg { @apply text-sm font-medium; }
+.toast { position: fixed; top: max(0.75rem, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 50; background: #111827; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 16px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); white-space: nowrap; max-width: calc(100vw - 2rem); overflow: hidden; text-overflow: ellipsis; cursor: pointer; animation: toast-in 180ms ease-out; }
+.toast.err { background: #7f1d1d; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .counter-error { @apply text-red-600 font-medium; }
 .counter-queue-head { @apply flex items-center justify-between gap-2 mb-2; }
 .counter-queue-head h2 { @apply text-sm font-semibold uppercase tracking-widest text-gray-500; }
@@ -58,7 +61,6 @@ body { @apply bg-white text-gray-900; }
   .counter-entry .counter-label { width: 100%; }
   .counter-entry .counter-input { flex: 1; min-width: 0; }
   .counter-entry .counter-park { width: 200px; flex: none; }
-  .counter-entry .counter-msg { width: 100%; }
   .counter-row { display: flex; align-items: center; gap: 1rem; }
   .counter-row-top { flex: 1; min-width: 0; }
   .counter-row-actions { flex: none; width: 280px; }

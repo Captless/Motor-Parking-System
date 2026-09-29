@@ -3,13 +3,14 @@ import { create, getActive, getById, checkout, markPaid, markUnpaid, renamePlate
 import type { DailyStats, ParkingTransaction } from '../../types/parking';
 import { formatPeso } from '../../lib/currency';
 import { formatDuration, formatTime, formatFullDate } from '../../lib/dates';
+import { useToast } from '../../app/toast';
 
 export default function Operations() {
   const [stats, setStats] = useState<DailyStats | null>(null);
   const [list, setList] = useState<ParkingTransaction[]>([]);
   const [plate, setPlate] = useState('');
   const [q, setQ] = useState('');
-  const [msg, setMsg] = useState('');
+  const toast = useToast();
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<ParkingTransaction | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,12 +28,12 @@ export default function Operations() {
   useEffect(() => { refresh(); }, [q]);
 
   const park = async () => {
-    setMsg(''); setBusy(true);
+    setBusy(true);
     try {
       const t = await create({ plateNumber: plate });
-      setPlate(''); setMsg(`Parked ${t.plateNumber}.`);
+      setPlate(''); toast.ok(`Parked ${t.plateNumber}.`);
       await refresh();
-    } catch (e: any) { setMsg(e.message); }
+    } catch (e: any) { toast.err(e.message); }
     finally { setBusy(false); }
   };
 
@@ -42,7 +43,7 @@ export default function Operations() {
       else await markPaid(t.id);
       await refresh();
       if (sel?.id === t.id) setSel((await getById(t.id)) ?? null);
-    } catch (e: any) { setMsg(e.message); }
+    } catch (e: any) { toast.err(e.message); }
   };
 
   const doCheckout = async () => {
@@ -50,9 +51,9 @@ export default function Operations() {
     try {
       await checkout(sel.id);
       setSel(null);
-      setMsg(`Checked out ${sel.plateNumber}.`);
+      toast.ok(`Checked out ${sel.plateNumber}.`);
       await refresh();
-    } catch (e: any) { setMsg(e.message); }
+    } catch (e: any) { toast.err(e.message); }
   };
 
   const savePlate = async (t: ParkingTransaction) => {
@@ -60,7 +61,7 @@ export default function Operations() {
     setRowErr('');
     try {
       const r = await renamePlate(t.id, draft);
-      setEditingId(null); setMsg(`Plate updated to ${r.plateNumber}.`); refresh();
+      setEditingId(null); toast.ok(`Plate updated to ${r.plateNumber}.`); refresh();
       if (sel?.id === t.id) setSel(r);
     } catch (e: any) { setRowErr(e.message); }
   };
@@ -96,7 +97,6 @@ export default function Operations() {
         <button className="counter-park" onClick={park} disabled={busy || !plate.trim()}>
           Park
         </button>
-        {msg && <p className="counter-msg">{msg}</p>}
       </section>
 
       <section className="counter-queue" aria-label="Parked queue">
