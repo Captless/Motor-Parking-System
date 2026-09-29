@@ -27,6 +27,15 @@ describe('parking', () => {
     await expect(R.checkout(t.id)).rejects.toThrow();
   });
   it('fee snapshot survives setting change', async () => { const t = await R.create({ plateNumber: 'C3' }); await R.updateSettings({ parkingFee: 25 }); expect((await R.getById(t.id))?.fee).toBe(20); });
+  it('settings default fee and ignore legacy lot-hours backup', async () => {
+    const s = await R.getSettings();
+    expect(s.parkingFee).toBe(20);
+    const b = await R.exportBackup();
+    expect(b.settings).toEqual({ parkingFee: 20 });
+    const legacy = { version: 1, exportedAt: 0, settings: { parkingFee: 20, openMin: 360, closeMin: 1350 }, transactions: [] };
+    await R.importBackup(legacy);
+    expect((await R.getSettings()).parkingFee).toBe(20);
+  });
   it('renamePlate fixes typos with normalization', async () => {
     const t = await R.create({ plateNumber: 'ABC 1' });
     const r = await R.renamePlate(t.id, ' abx  12 ');
@@ -107,6 +116,47 @@ describe('parking', () => {
     expect(buckets[0].unpaid).toBe(1);
     expect(buckets[1].unpaid).toBe(0);
   });
+  it('re-settle is a no-op: paidAt frozen, revenue stable', async () => {
+    const t = await R.create({ plateNumber: 'NS1' }); await R.checkout(t.id);
+    const first = await R.markPaid(t.id);
+    const second = await R.markPaid(t.id);
+    expect(second.paidAt).toBe(first.paidAt);
+    expect((await R.getDailyStats()).collectedToday).toBe(20);
+  });
+  it('undo then settle moves revenue exactly once', async () => {
+    const t = await R.create({ plateNumber: 'NS2' }); await R.checkout(t.id);
+    await R.markPaid(t.id); await R.markUnpaid(t.id);
+    expect((await R.getDailyStats()).collectedToday).toBe(0);
+    await R.markPaid(t.id);
+    expect((await R.getDailyStats()).collectedToday).toBe(20);
+  });
+  it('cross-day undo-settle cannot relocate revenue to today', async () => {
+    const now = Date.now();
+    const yest = (h: number) => { const d = new Date(now - 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'X1', plateNumber: 'X1', checkInAt: yest(8), checkOutAt: yest(9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: yest(9), firstPaidAt: yest(9) });
+    expect((await R.getDailyStats(now)).collectedToday).toBe(0);
+    await R.markUnpaid('X1');
+    const re = await R.markPaid('X1');
+    expect(re.firstPaidAt).toBe(yest(9));
+    expect((await R.getDailyStats(now)).collectedToday).toBe(0);
+    expect((await R.getDailyStats(yest(12))).collectedToday).toBe(20);
+  });
+  it('first-time settle still credits the settle day', async () => {
+    const t = await R.create({ plateNumber: 'FS1' }); await R.checkout(t.id);
+    const s = await R.markPaid(t.id);
+    expect(s.firstPaidAt).toBe(s.paidAt);
+    expect((await R.getDailyStats()).collectedToday).toBe(20);
+  });
+  it('legacy rows without firstPaidAt fall back to paidAt, backup preserves the field', async () => {
+    const now = Date.now();
+    await db.transactions.add({ id: 'L1', plateNumber: 'L1', checkInAt: now - 3600000, checkOutAt: now - 1800000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: now - 1800000 });
+    expect((await R.getDailyStats()).collectedToday).toBe(20);
+    const b = await R.exportBackup();
+    expect(b.transactions.find(t => t.id === 'L1')?.paidAt).toBeDefined();
+    await R.clearAll();
+    await R.importBackup(b);
+    expect((await R.getById('L1'))?.paymentStatus).toBe('paid');
+  });
   it('settle then unsettle round-trips revenue to zero', async () => {
     const t = await R.create({ plateNumber: 'RT1' }); await R.checkout(t.id);
     await R.markPaid(t.id);
@@ -114,6 +164,15 @@ describe('parking', () => {
     await R.markUnpaid(t.id);
     expect((await R.getById(t.id))?.paymentStatus).toBe('unpaid');
     expect((await R.getDailyStats()).collectedToday).toBe(0);
+  });
+  it('getDayRecords unions completed + open entries without dupes', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'W1', plateNumber: 'W1', checkInAt: at(0, 8), checkOutAt: at(0, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(0, 9) });
+    await db.transactions.add({ id: 'W2', plateNumber: 'W2', checkInAt: at(0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    await db.transactions.add({ id: 'W3', plateNumber: 'W3', checkInAt: at(3, 8), checkOutAt: at(3, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(3, 9) });
+    const rows = await R.getDayRecords(now);
+    expect(rows.map(t => t.id).sort()).toEqual(['W1', 'W2']);
   });
   it('getActiveDays lists distinct days newest-first', async () => {
     const now = Date.now();

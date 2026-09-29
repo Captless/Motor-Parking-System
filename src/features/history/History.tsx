@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'; import { getHistory, markPaid, markUnpaid } from '../../db/parkingRepository';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
-import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatTime, formatFullDate, formatDateTime } from '../../lib/dates';
+import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatTime, formatFullDate, formatDateTime, isToday } from '../../lib/dates';
 import { groupByDay } from '../../lib/history';
 import { useToast } from '../../app/toast';
 export default function History() {
@@ -9,13 +9,20 @@ export default function History() {
   const dq = useDebouncedValue(q);
   const load = () => getHistory(dq, f).then(setList).catch(e => toast.err(String(e.message ?? e)));
   useEffect(() => { load(); }, [dq, f]);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const settle = async (t: ParkingTransaction) => {
+    if (pendingId) return;
+    setPendingId(t.id);
     try { const r = await markPaid(t.id); toast.ok(`Settled ${formatPeso(r.fee)} for ${r.plateNumber}.`); load(); }
     catch (e: any) { toast.err(e.message); }
+    finally { setPendingId(null); }
   };
   const unsettle = async (t: ParkingTransaction) => {
+    if (pendingId) return;
+    setPendingId(t.id);
     try { const r = await markUnpaid(t.id); toast.ok(`Marked ${r.plateNumber} unpaid.`); load(); }
     catch (e: any) { toast.err(e.message); }
+    finally { setPendingId(null); }
   };
   const groups = useMemo(() => groupByDay(list), [list]);
   const total = useMemo(() => list.filter(t => t.paymentStatus === 'paid').reduce((s, t) => s + t.fee, 0), [list]);
@@ -44,7 +51,7 @@ export default function History() {
                   <td>{t.checkOutAt ? formatTime(t.checkOutAt) : '—'}</td>
                   <td className="num">{formatPeso(t.fee)}</td>
                   <td className={t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}>{t.paymentStatus === 'paid' ? (<>Paid{t.paidAt ? <span className="hist-paid-at">{formatDateTime(t.paidAt)}</span> : null}</>) : 'Unpaid'}</td>
-                  <td>{t.paymentStatus === 'paid' ? <button className="hist-undo" onClick={() => unsettle(t)}>Undo</button> : <button className="hist-settle" onClick={() => settle(t)}>Settle</button>}</td>
+                  <td>{t.paymentStatus === 'paid' ? (t.paidAt != null && isToday(t.paidAt) ? <button className="hist-undo" disabled={pendingId === t.id} onClick={() => unsettle(t)}>Undo</button> : '—') : <button className="hist-settle" disabled={pendingId === t.id} onClick={() => settle(t)}>Settle</button>}</td>
                 </tr>))}
               </tbody>
             </table>

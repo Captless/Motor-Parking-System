@@ -106,7 +106,7 @@ export default function Operations() {
 
       <section className="counter-queue" aria-label="Parked queue">
         <div className="counter-queue-head">
-          <h2>Queue{stats ? ` (${stats.parked})` : ''}</h2>
+          <h2>Parked{stats ? ` (${stats.parked})` : ''}</h2>
           <input
             className="counter-search" value={q}
             onChange={e => setQ(e.target.value)} placeholder="Search plate…"
@@ -114,7 +114,7 @@ export default function Operations() {
           />
         </div>
         {list.length === 0
-          ? <p className="counter-empty">{q ? 'No match. Try another plate.' : 'Queue empty. Park the next bike above.'}</p>
+          ? <p className="counter-empty">{q ? 'No match. Try another plate.' : 'Parking empty.'}</p>
           : <div className="counter-queue-list">
             {list.map(t => (
             <div key={t.id} className="counter-row">

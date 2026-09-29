@@ -1,34 +1,39 @@
 import { useEffect, useState } from 'react';
-import { getSettings, updateSettings, exportBackup, importBackup, clearAll, getActive, getHistory, getActiveDays, getDayStats, getDayTransactions } from '../../db/parkingRepository';
-import type { DayStats } from '../../db/parkingRepository';
-import { dayReportCSV, reportFilename, backupFilename, downloadTextFile } from '../../lib/report';
+import { getSettings, updateSettings, exportBackup, importBackup, clearAll, getActive, getHistory, getActiveDays, getDayRecords } from '../../db/parkingRepository';
+import type { ParkingTransaction } from '../../types/parking';
+import { dayReportCSV, dayReportHTML, dayReportTXT, reportFilename, backupFilename, downloadTextFile, summarizeDay, type ReportFormat } from '../../lib/report';
 import { formatPeso } from '../../lib/currency';
-import { formatFullDate, inDay } from '../../lib/dates';
+import { formatFullDate } from '../../lib/dates';
 import { useToast } from '../../app/toast';
 export default function Settings() {
   const toast = useToast();
   const [fee, setFee] = useState(''); const [confirmClear, setConfirmClear] = useState(false);
   const [counts, setCounts] = useState(''); const [storage, setStorage] = useState(''); const [persisted, setPersisted] = useState<boolean | null>(null);
-  const [days, setDays] = useState<{ day: number; stats: DayStats }[]>([]);
+  const [days, setDays] = useState<{ day: number; rows: ParkingTransaction[] }[]>([]);
+  const [format, setFormat] = useState<ReportFormat>('csv');
+  const [showAll, setShowAll] = useState(false);
   const loadMeta = async () => {
     const [a, h, b, ds] = await Promise.all([getActive(), getHistory(), exportBackup(), getActiveDays()]);
     setCounts(`${a.length + h.length} records (${a.length} parked / ${h.length} completed)`);
     const bytes = new Blob([JSON.stringify(b)]).size;
     setStorage(bytes < 1024 ? `backup ~${bytes} bytes` : `backup ~${(bytes / 1024).toFixed(1)} KB`);
-    setDays(await Promise.all(ds.map(async day => ({ day, stats: await getDayStats(day) }))));
+    setDays(await Promise.all(ds.map(async day => ({ day, rows: await getDayRecords(day) }))));
     try { setPersisted(await navigator.storage?.persisted?.() ?? null); } catch { setPersisted(null); }
   };
   const downloadDay = async (day: number) => {
     try {
-      const [stats, done, active] = await Promise.all([getDayStats(day), getDayTransactions(day), getActive()]);
-      const seen = new Set(done.map(t => t.id));
-      const rows = [...done, ...active.filter(t => inDay(t.checkInAt, day) && !seen.has(t.id))];
-      downloadTextFile(reportFilename(day), dayReportCSV(day, stats, rows), 'text/csv');
+      const rows = await getDayRecords(day);
+      const mime = format === 'csv' ? 'text/csv' : format === 'html' ? 'text/html' : 'text/plain';
+      const body = format === 'csv' ? dayReportCSV(day, rows) : format === 'html' ? dayReportHTML(day, rows) : dayReportTXT(day, rows);
+      downloadTextFile(reportFilename(day, format), body, mime);
       toast.ok('Report downloaded.');
     } catch (e: any) { toast.err(e.message); }
   };
-  useEffect(() => { getSettings().then(s => setFee(String(s.parkingFee))).catch(e => toast.err(String(e.message ?? e))); loadMeta(); }, []);
-  const save = async () => { try { await updateSettings({ parkingFee: Number(fee) }); toast.ok('Parking fee saved.'); } catch (e: any) { toast.err(e.message); } };
+  useEffect(() => { getSettings().then(s => { setFee(String(s.parkingFee)); }).catch(e => toast.err(String(e.message ?? e))); loadMeta(); }, []);
+  const saveFee = async () => {
+    try { const s = await updateSettings({ parkingFee: Number(fee) }); setFee(String(s.parkingFee)); toast.ok('Parking fee saved.'); }
+    catch (e: any) { toast.err(e.message); }
+  };
   const doExport = async () => { const b = await exportBackup();
     downloadTextFile(backupFilename(), JSON.stringify(b, null, 2), 'application/json'); };
   const doImport = async (file: File) => { try { const j = JSON.parse(await file.text()); if (!confirm('Replace all local data with this backup?')) return; await importBackup(j); toast.ok('Backup restored.'); loadMeta(); } catch (e: any) { toast.err(e.message); } };
@@ -43,19 +48,29 @@ export default function Settings() {
   return (<div className="space-y-4"><h1 className="text-xl font-bold">Settings</h1>
     <div className="card space-y-3"><p className="font-semibold">Parking Fee</p>
       <label className="block text-sm font-semibold">Fee (₱)<input className="input mt-1" inputMode="numeric" value={fee} onChange={e => setFee(e.target.value)} /></label>
-      <button className="btn-primary" onClick={save}>Save</button></div>
-    <div className="card space-y-2"><p className="font-semibold">Data</p>
+      <button className="w-full py-3 bg-gray-900 text-white rounded-xl font-semibold" onClick={saveFee}>Save</button>
+    </div>
+    <div className="card space-y-2"><p className="font-semibold">Data & storage</p>
       <button className="w-full py-3 border rounded-xl font-semibold" onClick={doExport}>Export Backup</button>
-      <label className="w-full py-3 border rounded-xl font-semibold text-center block cursor-pointer">Import Backup<input type="file" accept="application/json" className="hidden" onChange={e => e.target.files?.[0] && doImport(e.target.files[0])} /></label></div>
-    <div className="card space-y-1"><p className="font-semibold">Storage</p><p className="text-sm text-gray-600">{counts || '…'}</p>{storage && <p className="text-sm text-gray-600">{storage}</p>}{persisted != null && <p className="text-sm text-gray-600">protection: {persisted ? 'on' : 'standard'}</p>}<p className="text-sm text-gray-400">Local device only · v{__APP_VERSION__}</p></div>
-    <div className="card space-y-1"><p className="font-semibold">Daily reports</p>
+      <label className="w-full py-3 border rounded-xl font-semibold text-center block cursor-pointer">Import Backup<input type="file" accept="application/json" className="hidden" onChange={e => e.target.files?.[0] && doImport(e.target.files[0])} /></label>
+      <div className="pt-1 space-y-1"><p className="text-sm text-gray-600">{counts || '…'}</p>{storage && <p className="text-sm text-gray-600">{storage}</p>}{persisted != null && <p className="text-sm text-gray-600">protection: {persisted ? 'on' : 'standard'}</p>}<p className="text-sm text-gray-400">Local device only · v{__APP_VERSION__}</p></div></div>
+    <div className="card space-y-3"><p className="font-semibold">Daily reports</p>
+      <div className="hist-filter" role="group" aria-label="Report format">
+        {(['csv', 'html', 'txt'] as const).map(x => <button key={x} onClick={() => setFormat(x)} aria-pressed={format === x} className={`hist-chip${format === x ? ' active' : ''}`}>{x.toUpperCase()}</button>)}
+      </div>
       {days.length === 0 && <p className="text-sm text-gray-500">No days with data yet.</p>}
-      {days.map(d => (
+      {(showAll ? days : days.slice(0, 3)).map(d => {
+        const s = summarizeDay(d.rows);
+        return (
         <div key={d.day} className="report-row">
           <div><p className="font-bold">{formatFullDate(d.day)}</p>
-            <p className="text-sm text-gray-500">{d.stats.entries + d.stats.completed} records · {formatPeso(d.stats.collected)}</p></div>
+            <p className="text-sm text-gray-500">{s.total} records · {formatPeso(s.collected)}{s.unpaidCount > 0 ? ` · ${formatPeso(s.unpaidAmount)} unpaid` : ''}</p></div>
           <button className="report-dl" onClick={() => downloadDay(d.day)}>Download</button>
-        </div>))}
+        </div>); })}
+      {days.length > 3 && (
+        <button className="counter-link muted" onClick={() => setShowAll(v => !v)}>
+          {showAll ? 'Show less' : `Show all ${days.length} days`}
+        </button>)}
     </div>
     <div className="card">{!confirmClear ? <button className="w-full py-3 text-red-600 font-semibold" onClick={doClear}>Clear All Data</button>
       : <><p className="text-sm font-semibold">Delete all local parking data? A full backup downloads automatically first.</p>

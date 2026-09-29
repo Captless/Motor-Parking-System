@@ -9,7 +9,7 @@ export async function getDayStats(day: number): Promise<DayStats> {
     day: startOfDay(day),
     entries: all.filter(t => inDay(t.checkInAt, day)).length,
     completed: all.filter(t => inDay(t.checkOutAt, day)).length,
-    collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+    collected: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), day)).reduce((s, t) => s + t.fee, 0),
     unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
   };
 }
@@ -22,7 +22,7 @@ export async function getWeekStats(now = Date.now()): Promise<DayStats[]> {
       day,
       entries: all.filter(t => inDay(t.checkInAt, day)).length,
       completed: all.filter(t => inDay(t.checkOutAt, day)).length,
-      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), day)).reduce((s, t) => s + t.fee, 0),
       unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
     });
   }
@@ -36,7 +36,7 @@ export async function getDayBuckets(fromDay: number, toDay: number): Promise<Day
       day,
       entries: all.filter(t => inDay(t.checkInAt, day)).length,
       completed: all.filter(t => inDay(t.checkOutAt, day)).length,
-      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), day)).reduce((s, t) => s + t.fee, 0),
       unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
     });
   }
@@ -69,12 +69,18 @@ export async function getActiveDays(): Promise<number[]> {
     set.add(startOfDay(t.checkInAt));
     if (t.checkOutAt != null) set.add(startOfDay(t.checkOutAt));
     if (t.paidAt != null) set.add(startOfDay(t.paidAt));
+    if (t.firstPaidAt != null) set.add(startOfDay(t.firstPaidAt));
   }
   return [...set].sort((a, b) => b - a);
 }
 export async function getDayTransactions(day: number): Promise<ParkingTransaction[]> {
   const list = await db.transactions.where('status').equals('completed').reverse().sortBy('checkOutAt');
   return list.filter(t => inDay(t.checkOutAt, day));
+}
+export async function getDayRecords(day: number): Promise<ParkingTransaction[]> {
+  const [done, active] = await Promise.all([getDayTransactions(day), getActive()]);
+  const seen = new Set(done.map(t => t.id));
+  return [...done, ...active.filter(t => inDay(t.checkInAt, day) && !seen.has(t.id))];
 }
 export interface PeakHour { hour: number; count: number; }
 export interface Outstanding { count: number; amount: number; }
@@ -113,8 +119,10 @@ export async function getRangeAnalytics(now = Date.now()): Promise<RangeAnalytic
 
 export async function getSettings(): Promise<AppSettings> {
   await ensureSeed();
-  const raw = (await db.settings.get('main')) as AppSettings & { businessName?: unknown };
-  if (!Number.isInteger(raw.parkingFee)) { raw.parkingFee = 20; await db.settings.put({ id: 'main', parkingFee: 20 }); }
+  const raw = (await db.settings.get('main')) as AppSettings & { businessName?: unknown; openMin?: unknown; closeMin?: unknown };
+  let dirty = false;
+  if (!Number.isInteger(raw.parkingFee)) { raw.parkingFee = 20; dirty = true; }
+  if (dirty) await db.settings.put({ id: 'main', parkingFee: raw.parkingFee });
   return { id: 'main', parkingFee: raw.parkingFee };
 }
 export async function updateSettings(p: Partial<Omit<AppSettings, 'id'>>): Promise<AppSettings> {
@@ -148,9 +156,12 @@ export async function renamePlate(id: string, newPlate: string): Promise<Parking
   const next: ParkingTransaction = { ...tx, plateNumber: plate };
   await db.transactions.put(next); return next;
 }
+export const revenueDay = (t: ParkingTransaction): number | undefined => t.firstPaidAt ?? t.paidAt;
 export async function markPaid(id: string): Promise<ParkingTransaction> {
   const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
-  const next: ParkingTransaction = { ...tx, paymentStatus: 'paid', paidAt: Date.now() };
+  if (tx.paymentStatus === 'paid') return tx;
+  const now = Date.now();
+  const next: ParkingTransaction = { ...tx, paymentStatus: 'paid', paidAt: now, firstPaidAt: tx.firstPaidAt ?? now };
   await db.transactions.put(next); return next;
 }
 export async function markUnpaid(id: string): Promise<ParkingTransaction> {
@@ -177,7 +188,7 @@ export async function getDailyStats(now = Date.now()): Promise<DailyStats> {
     parked,
     entriesToday: all.filter(t => inDay(t.checkInAt, now)).length,
     completedToday: all.filter(t => inDay(t.checkOutAt, now)).length,
-    collectedToday: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, now)).reduce((s, t) => s + t.fee, 0),
+    collectedToday: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), now)).reduce((s, t) => s + t.fee, 0),
   };
 }
 export async function exportBackup(): Promise<BackupFile> {
@@ -186,13 +197,13 @@ export async function exportBackup(): Promise<BackupFile> {
 }
 export function validateBackup(d: unknown): BackupFile {
   if (typeof d !== 'object' || d === null) throw new Error('Invalid backup file.');
-  const b = d as BackupFile & { settings?: { businessName?: unknown; parkingFee?: unknown }; transactions?: Array<Record<string, unknown>> };
+  const b = d as BackupFile & { settings?: { businessName?: unknown; parkingFee?: unknown; openMin?: unknown; closeMin?: unknown }; transactions?: Array<Record<string, unknown>> };
   if ((b.version as number) !== 1 && (b.version as number) !== 2) throw new Error('Unsupported backup version.');
   if (!Number.isInteger(b.settings?.parkingFee)) throw new Error('Invalid backup settings.');
   if (!Array.isArray(b.transactions)) throw new Error('Invalid backup transactions.');
   const txs: ParkingTransaction[] = b.transactions.map(t => {
     if (!t.id || !t.plateNumber || !t.checkInAt || !['parked', 'completed'].includes(t.status as string)) throw new Error('Invalid transaction in backup.');
-    return { id: t.id, plateNumber: t.plateNumber, checkInAt: t.checkInAt, checkOutAt: t.checkOutAt, fee: t.fee, status: t.status, paymentStatus: t.paymentStatus === 'paid' ? 'paid' : 'unpaid', paidAt: t.paidAt } as ParkingTransaction;
+    return { id: t.id, plateNumber: t.plateNumber, checkInAt: t.checkInAt, checkOutAt: t.checkOutAt, fee: t.fee, status: t.status, paymentStatus: t.paymentStatus === 'paid' ? 'paid' : 'unpaid', paidAt: t.paidAt, firstPaidAt: (t as ParkingTransaction).firstPaidAt } as ParkingTransaction;
   });
   return { version: 2, exportedAt: typeof b.exportedAt === 'number' ? b.exportedAt : Date.now(), settings: { parkingFee: b.settings!.parkingFee as number }, transactions: txs };
 }
@@ -201,7 +212,7 @@ export async function importBackup(data: unknown): Promise<void> {
   await db.transaction('rw', db.transactions, db.settings, async () => {
     await db.transactions.clear();
     await db.transactions.bulkAdd(b.transactions);
-    await db.settings.put({ id: 'main', ...b.settings });
+    await db.settings.put({ id: 'main', parkingFee: b.settings.parkingFee });
   });
 }
 export async function clearAll(): Promise<void> {
