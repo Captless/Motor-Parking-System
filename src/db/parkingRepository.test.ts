@@ -77,6 +77,21 @@ describe('parking', () => {
     expect(r.peakHour).toEqual({ hour: 8, count: 2 });
     expect(r.outstanding).toEqual({ count: 2, amount: 40 });
   });
+  it('day buckets + range summary scope to range', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'B1', plateNumber: 'B1', checkInAt: at(1, 8), checkOutAt: at(1, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 9) });
+    await db.transactions.add({ id: 'B2', plateNumber: 'B2', checkInAt: at(9, 8), checkOutAt: at(9, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(9, 9) });
+    const buckets = await R.getDayBuckets(now - 2 * 86400000, now);
+    expect(buckets.length).toBe(3);
+    expect(buckets[1].collected).toBe(20); expect(buckets[0].collected).toBe(0); expect(buckets[2].collected).toBe(0);
+    const s = await R.getRangeSummary(now - 2 * 86400000, now);
+    expect(s.totalCollected).toBe(20); expect(s.totalEntries).toBe(1);
+    expect(s.peakHour).toEqual({ hour: 8, count: 1 });
+    expect(s.outstanding).toEqual({ count: 0, amount: 0 });
+    const old = await R.getRangeSummary(now - 10 * 86400000, now - 8 * 86400000);
+    expect(old.totalCollected).toBe(20); expect(old.totalEntries).toBe(1);
+  });
   it('range analytics empty-safe with null deltas', async () => {
     const r = await R.getRangeAnalytics();
     expect(r.totalCollected).toBe(0); expect(r.revenueDeltaPct).toBeNull(); expect(r.entriesDeltaPct).toBeNull();

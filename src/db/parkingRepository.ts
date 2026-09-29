@@ -26,6 +26,39 @@ export async function getWeekStats(now = Date.now()): Promise<DayStats[]> {
   }
   return out;
 }
+export async function getDayBuckets(fromDay: number, toDay: number): Promise<DayStats[]> {
+  const all = await db.transactions.toArray();
+  const out: DayStats[] = [];
+  for (let day = startOfDay(fromDay); day <= startOfDay(toDay); day += 86400000) {
+    out.push({
+      day,
+      entries: all.filter(t => inDay(t.checkInAt, day)).length,
+      completed: all.filter(t => inDay(t.checkOutAt, day)).length,
+      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+    });
+  }
+  return out;
+}
+export interface RangeSummary { days: DayStats[]; totalCollected: number; totalEntries: number; peakHour: PeakHour | null; outstanding: Outstanding; }
+export async function getRangeSummary(from: number, to: number): Promise<RangeSummary> {
+  const days = await getDayBuckets(from, to);
+  const all = await db.transactions.toArray();
+  const lo = startOfDay(from); const hi = startOfDay(to) + 86400000;
+  const hours = new Array(24).fill(0);
+  for (const t of all) {
+    if (t.checkInAt >= lo && t.checkInAt < hi) hours[new Date(t.checkInAt).getHours()]++;
+  }
+  let peakHour: PeakHour | null = null;
+  hours.forEach((c, h) => { if (c > 0 && (!peakHour || c > peakHour.count)) peakHour = { hour: h, count: c }; });
+  const open = all.filter(t => t.paymentStatus !== 'paid');
+  return {
+    days,
+    totalCollected: days.reduce((s, d) => s + d.collected, 0),
+    totalEntries: days.reduce((s, d) => s + d.entries, 0),
+    peakHour,
+    outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
+  };
+}
 export async function getDayTransactions(day: number): Promise<ParkingTransaction[]> {
   const list = await db.transactions.where('status').equals('completed').reverse().sortBy('checkOutAt');
   return list.filter(t => inDay(t.checkOutAt, day));
