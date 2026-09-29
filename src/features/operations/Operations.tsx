@@ -73,6 +73,7 @@ export default function Operations() {
   if (err) return <p className="counter-error">{err}</p>;
 
   return (
+    <>
     <div className="counter">
       <section className="counter-head" aria-live="polite">
         {stats ? (
@@ -150,6 +151,7 @@ export default function Operations() {
           </div>}
       </section>
 
+    </div>
       {sel && (
         <div className="counter-sheet-backdrop" onClick={() => setSel(null)}>
           <div className="counter-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-label={`Check out ${sel.plateNumber}`}>
@@ -162,6 +164,6 @@ export default function Operations() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
