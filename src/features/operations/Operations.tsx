@@ -73,12 +73,13 @@ export default function Operations() {
         {stats ? (
           <>
             <p className="counter-date">{formatFullDate(Date.now())}</p>
-            <p className="counter-number">{stats.parked}</p>
-            <p className="counter-caption">Parked now</p>
-            <p className="counter-collected">{formatPeso(stats.collectedToday)} collected today</p>
             {(() => {
               const unpaid = list.filter(t => t.paymentStatus !== 'paid').reduce((s, t) => s + t.fee, 0);
-              return (<p className="counter-unpaid-line">Unpaid {formatPeso(unpaid)}</p>);
+              return (<div className="stat-strip">
+                <div className="stat-cell"><p className="stat-val">{stats.parked}</p><p className="stat-label">Parked</p></div>
+                <div className="stat-cell"><p className="stat-val">{formatPeso(stats.collectedToday)}</p><p className="stat-label">Collected</p></div>
+                <div className="stat-cell"><p className="stat-val unpaid">{formatPeso(unpaid)}</p><p className="stat-label">Unpaid</p></div>
+              </div>);
             })()}
           </>
         ) : <p className="counter-sub">Loading…</p>}

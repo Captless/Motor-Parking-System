@@ -10,12 +10,14 @@ body { @apply bg-white text-gray-900; }
 
 /* Counter — single-column ops screen */
 .counter { @apply space-y-6; }
-.counter-head { @apply text-center pt-4; }
-.counter-number { font-size: 3.5rem; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-.counter-caption { @apply text-sm font-semibold uppercase tracking-widest text-gray-500 mt-1; }
-.counter-collected { @apply text-lg font-bold mt-2; }
+.counter-head { @apply text-center pt-2 space-y-1; }
+.stat-strip { @apply flex; }
+.stat-cell { @apply flex-1 min-w-0 px-1; }
+.stat-cell + .stat-cell { @apply border-l border-gray-200; }
+.stat-val { @apply text-lg font-extrabold whitespace-nowrap; font-variant-numeric: tabular-nums; }
+.stat-val.unpaid { @apply text-amber-800; }
+.stat-label { @apply text-[10px] font-bold uppercase tracking-widest text-gray-500; }
 .counter-unpaid { @apply text-amber-800; }
-.counter-unpaid-line { @apply text-lg font-bold mt-1 text-amber-800; font-variant-numeric: tabular-nums; }
 .counter-sub { @apply text-sm text-gray-500; }
 .counter-entry { @apply space-y-2; }
 .counter-label { @apply block text-xs font-semibold uppercase tracking-widest text-gray-500; }
@@ -26,9 +28,10 @@ body { @apply bg-white text-gray-900; }
 .counter-msg { @apply text-sm font-medium; }
 .counter-error { @apply text-red-600 font-medium; }
 .counter-queue-head { @apply flex items-center justify-between gap-2 mb-2; }
-.counter-queue-head h2 { @apply text-xs font-semibold uppercase tracking-widest text-gray-500; }
-.counter-search { @apply border border-gray-300 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-gray-900; }
-.counter-queue-list { max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid #e5e7eb; }
+.counter-queue-head h2 { @apply text-sm font-semibold uppercase tracking-widest text-gray-500; }
+.counter-search { @apply border border-gray-300 rounded-lg px-3 py-2.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-gray-900; }
+.counter-queue-list { border-top: 1px solid #e5e7eb; }
+.counter-queue-head { position: sticky; top: 0; background: #fff; z-index: 5; padding-top: 0.75rem; padding-bottom: 0.75rem; }
 .counter-row { @apply border-b border-gray-200 py-3 space-y-2; }
 .counter-row-top { @apply flex items-baseline gap-2; }
 .counter-plate { @apply text-xl font-extrabold tracking-wide; font-variant-numeric: tabular-nums; }
@@ -51,13 +54,11 @@ body { @apply bg-white text-gray-900; }
 .counter-link.muted { @apply text-gray-500 font-normal no-underline; }
 
 @media (min-width: 1024px) {
-  .counter-number { font-size: 2.75rem; }
   .counter-entry { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; }
   .counter-entry .counter-label { width: 100%; }
   .counter-entry .counter-input { flex: 1; min-width: 0; }
   .counter-entry .counter-park { width: 200px; flex: none; }
   .counter-entry .counter-msg { width: 100%; }
-  .counter-queue-list { max-height: 60vh; }
   .counter-row { display: flex; align-items: center; gap: 1rem; }
   .counter-row-top { flex: 1; min-width: 0; }
   .counter-row-actions { flex: none; width: 280px; }
@@ -119,4 +120,4 @@ body { @apply bg-white text-gray-900; }
 .hist-batch { margin-bottom: 12px; min-width: 560px; }
 .hist-batch:last-of-type { margin-bottom: 0; }
 .hist-batch-head { @apply flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-700 border border-gray-200; font-variant-numeric: tabular-nums; }
-.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; }
+.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; min-width: 560px; }
