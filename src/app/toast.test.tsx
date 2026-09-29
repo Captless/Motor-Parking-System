@@ -18,6 +18,16 @@ describe('toast', () => {
     fireEvent.click(screen.getByText('ok-btn'));
     expect(screen.getByRole('status').textContent).toBe('Saved.');
   });
+  it('ok never overwrites a displayed err, err always wins', () => {
+    vi.useFakeTimers();
+    render(<ToastProvider><Probe /></ToastProvider>);
+    fireEvent.click(screen.getByText('err-btn'));
+    fireEvent.click(screen.getByText('ok-btn'));
+    expect(screen.getByRole('alert').textContent).toBe('Failed.');
+    fireEvent.click(screen.getByText('ok-btn'));
+    fireEvent.click(screen.getByText('err-btn'));
+    expect(screen.getByRole('alert').textContent).toBe('Failed.');
+  });
   it('auto-dismisses ok after 3s, err persists until tap', () => {
     vi.useFakeTimers();
     render(<ToastProvider><Probe /></ToastProvider>);

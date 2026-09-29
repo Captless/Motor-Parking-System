@@ -4,6 +4,8 @@ import type { DailyStats, ParkingTransaction } from '../../types/parking';
 import { formatPeso } from '../../lib/currency';
 import { formatDuration, formatTime, formatFullDate } from '../../lib/dates';
 import { useToast } from '../../app/toast';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
+import { useToday } from '../../lib/useToday';
 
 export default function Operations() {
   const [stats, setStats] = useState<DailyStats | null>(null);
@@ -11,6 +13,8 @@ export default function Operations() {
   const [plate, setPlate] = useState('');
   const [q, setQ] = useState('');
   const toast = useToast();
+  const today = useToday();
+  const dq = useDebouncedValue(q);
   const [err, setErr] = useState('');
   const [sel, setSel] = useState<ParkingTransaction | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,11 +25,11 @@ export default function Operations() {
 
   const refresh = async () => {
     try {
-      const [s, a] = await Promise.all([getDailyStats(), getActive(q)]);
+      const [s, a] = await Promise.all([getDailyStats(), getActive(dq)]);
       setStats(s); setList(a);
     } catch (e: any) { setErr(String(e.message ?? e)); }
   };
-  useEffect(() => { refresh(); }, [q]);
+  useEffect(() => { refresh(); }, [dq, today]);
 
   const park = async () => {
     setBusy(true);

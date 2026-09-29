@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getRangeSummary, type RangeSummary } from '../../db/parkingRepository';
 import { formatPeso, formatPesoCompact } from '../../lib/currency';
+import { useToday } from '../../lib/useToday';
 import { formatFullDate, monthStart, yearStart, addMonths, formatMonth, startOfDay, isToday } from '../../lib/dates';
 
 type Preset = 'today' | 'week' | 'month' | 'year';
@@ -9,6 +10,7 @@ const fmtHour = (h: number): string => { const ap = h < 12 ? 'AM' : 'PM'; const 
 
 export default function Analytics() {
   const [preset, setPreset] = useState<Preset>('week');
+  const todayTick = useToday();
   const [sum, setSum] = useState<RangeSummary | null>(null);
   const [monthCursor, setMonthCursor] = useState(() => monthStart(Date.now()));
   const [monthDays, setMonthDays] = useState<RangeSummary | null>(null);
@@ -21,12 +23,12 @@ export default function Analytics() {
       : preset === 'month' ? [monthStart(now), now]
       : [yearStart(now), now];
     getRangeSummary(from, to).then(setSum).catch(e => setErr(String(e.message ?? e)));
-  }, [preset]);
+  }, [preset, todayTick]);
 
   useEffect(() => {
     const next = addMonths(monthCursor, 1);
     getRangeSummary(monthCursor, next - 1).then(setMonthDays).catch(() => {});
-  }, [monthCursor]);
+  }, [monthCursor, todayTick]);
 
   const cells = useMemo(() => {
     if (!monthDays) return [];

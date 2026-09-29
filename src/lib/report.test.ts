@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'; import { dayReportCSV, reportFilename } from './report';
+import { describe, it, expect } from 'vitest'; import { dayReportCSV, reportFilename, backupFilename } from './report';
 import type { ParkingTransaction } from '../types/parking';
 const tx = (over: Partial<ParkingTransaction> & { id: string }): ParkingTransaction => ({
   plateNumber: 'A1', checkInAt: 0, fee: 20, status: 'completed', paymentStatus: 'paid', ...over,
@@ -37,8 +37,9 @@ describe('dayReportCSV', () => {
     const open = csv.split('\n').find(l => l.startsWith('O1'))!;
     expect(open).toContain(',,');
   });
-  it('filename shape', () => {
-    expect(reportFilename(new Date(2026, 8, 23, 12).getTime())).toBe('motor-parking-eod-2026-09-23.csv');
+  it('filename shape carries date + time', () => {
+    expect(reportFilename(new Date(2026, 8, 23, 12).getTime(), new Date(2026, 8, 23, 15, 4).getTime())).toBe('motor-parking-eod-2026-09-23-1504.csv');
+    expect(backupFilename(new Date(2026, 8, 23, 9, 5).getTime())).toBe('motor-parking-backup-2026-09-23-0905.json');
   });
   it('times read AM/PM and overnight rows are flagged', () => {
     const day = new Date(2026, 8, 23, 12).getTime();

@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'; import { getHistory, markPaid } from '../../db/parkingRepository';
+import { useEffect, useMemo, useState } from 'react'; import { getHistory, markPaid, markUnpaid } from '../../db/parkingRepository';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatTime, formatFullDate, formatDateTime } from '../../lib/dates';
 import { groupByDay } from '../../lib/history';
 import { useToast } from '../../app/toast';
 export default function History() {
   const toast = useToast();
   const [list, setList] = useState<ParkingTransaction[]>([]); const [q, setQ] = useState(''); const [f, setF] = useState<'all' | 'paid' | 'unpaid'>('all');
-  const load = () => getHistory(q, f).then(setList).catch(e => toast.err(String(e.message ?? e)));
-  useEffect(() => { load(); }, [q, f]);
+  const dq = useDebouncedValue(q);
+  const load = () => getHistory(dq, f).then(setList).catch(e => toast.err(String(e.message ?? e)));
+  useEffect(() => { load(); }, [dq, f]);
   const settle = async (t: ParkingTransaction) => {
     try { const r = await markPaid(t.id); toast.ok(`Settled ${formatPeso(r.fee)} for ${r.plateNumber}.`); load(); }
+    catch (e: any) { toast.err(e.message); }
+  };
+  const unsettle = async (t: ParkingTransaction) => {
+    try { const r = await markUnpaid(t.id); toast.ok(`Marked ${r.plateNumber} unpaid.`); load(); }
     catch (e: any) { toast.err(e.message); }
   };
   const groups = useMemo(() => groupByDay(list), [list]);
@@ -38,7 +44,7 @@ export default function History() {
                   <td>{t.checkOutAt ? formatTime(t.checkOutAt) : '—'}</td>
                   <td className="num">{formatPeso(t.fee)}</td>
                   <td className={t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}>{t.paymentStatus === 'paid' ? (<>Paid{t.paidAt ? <span className="hist-paid-at">{formatDateTime(t.paidAt)}</span> : null}</>) : 'Unpaid'}</td>
-                  <td>{t.paymentStatus === 'paid' ? '—' : <button className="hist-settle" onClick={() => settle(t)}>Settle</button>}</td>
+                  <td>{t.paymentStatus === 'paid' ? <button className="hist-undo" onClick={() => unsettle(t)}>Undo</button> : <button className="hist-settle" onClick={() => settle(t)}>Settle</button>}</td>
                 </tr>))}
               </tbody>
             </table>

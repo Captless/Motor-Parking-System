@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 export type ToastKind = 'ok' | 'err';
 interface ToastState { id: number; text: string; kind: ToastKind; }
@@ -13,18 +13,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastState | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const toastRef = useRef<ToastState | null>(null);
   const show = useCallback((text: string, kind: ToastKind) => {
+    if (kind === 'ok' && toastRef.current?.kind === 'err') return;
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-    setToast({ id: nextId++, text, kind });
-    if (kind === 'ok') timer.current = setTimeout(() => setToast(null), 3000);
+    const next = { id: nextId++, text, kind };
+    toastRef.current = next;
+    setToast(next);
+    if (kind === 'ok') timer.current = setTimeout(() => { toastRef.current = null; setToast(null); }, 3000);
   }, []);
+  const dismiss = useCallback(() => { if (timer.current) clearTimeout(timer.current); toastRef.current = null; setToast(null); }, []);
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const api: ToastApi = {
+  const api: ToastApi = useMemo(() => ({
     ok: text => show(text, 'ok'),
     err: text => show(text, 'err'),
-  };
+  }), [show]);
 
   return (
     <ToastContext.Provider value={api}>
@@ -32,7 +37,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast && (
         <p key={toast.id} className={`toast${toast.kind === 'err' ? ' err' : ''}`}
           role={toast.kind === 'err' ? 'alert' : 'status'}
-          onClick={() => { if (timer.current) clearTimeout(timer.current); setToast(null); }}>
+          onClick={dismiss}>
           {toast.text}
         </p>
       )}

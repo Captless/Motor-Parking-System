@@ -107,6 +107,14 @@ describe('parking', () => {
     expect(buckets[0].unpaid).toBe(1);
     expect(buckets[1].unpaid).toBe(0);
   });
+  it('settle then unsettle round-trips revenue to zero', async () => {
+    const t = await R.create({ plateNumber: 'RT1' }); await R.checkout(t.id);
+    await R.markPaid(t.id);
+    expect((await R.getDailyStats()).collectedToday).toBe(20);
+    await R.markUnpaid(t.id);
+    expect((await R.getById(t.id))?.paymentStatus).toBe('unpaid');
+    expect((await R.getDailyStats()).collectedToday).toBe(0);
+  });
   it('getActiveDays lists distinct days newest-first', async () => {
     const now = Date.now();
     const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };

@@ -21,7 +21,16 @@ const stamp = (day: number): string => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
 
-export const reportFilename = (day: number): string => `motor-parking-eod-${stamp(day)}.csv`;
+export const reportFilename = (day: number, at = Date.now()): string => {
+  const d = new Date(at);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `motor-parking-eod-${stamp(day)}-${p(d.getHours())}${p(d.getMinutes())}.csv`;
+};
+export const backupFilename = (at = Date.now()): string => {
+  const d = new Date(at);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `motor-parking-backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
+};
 
 export function dayReportCSV(day: number, stats: Pick<DayStats, 'day' | 'entries' | 'completed' | 'collected'>, txs: ParkingTransaction[]): string {
   const lines = [
