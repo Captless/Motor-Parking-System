@@ -20,7 +20,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const next = { id: nextId++, text, kind };
     toastRef.current = next;
     setToast(next);
-    if (kind === 'ok') timer.current = setTimeout(() => { toastRef.current = null; setToast(null); }, 3000);
+    timer.current = setTimeout(() => { toastRef.current = null; setToast(null); }, kind === 'ok' ? 3000 : 6000);
   }, []);
   const dismiss = useCallback(() => { if (timer.current) clearTimeout(timer.current); toastRef.current = null; setToast(null); }, []);
 

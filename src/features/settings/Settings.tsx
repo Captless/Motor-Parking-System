@@ -3,7 +3,7 @@ import { getSettings, updateSettings, exportBackup, importBackup, clearAll, getA
 import type { ParkingTransaction } from '../../types/parking';
 import { dayReportCSV, dayReportHTML, dayReportTXT, reportFilename, backupFilename, downloadTextFile, summarizeDay, type ReportFormat } from '../../lib/report';
 import { formatPeso } from '../../lib/currency';
-import { formatFullDate } from '../../lib/dates';
+import { formatFullDate, startOfDay } from '../../lib/dates';
 import { useToast } from '../../app/toast';
 export default function Settings() {
   const toast = useToast();
@@ -12,6 +12,17 @@ export default function Settings() {
   const [days, setDays] = useState<{ day: number; rows: ParkingTransaction[] }[]>([]);
   const [format, setFormat] = useState<ReportFormat>('csv');
   const [showAll, setShowAll] = useState(false);
+  const [lastBackup, setLastBackup] = useState<number | null>(null);
+  const backupStale = (ts: number | null): boolean => {
+    if (ts == null) return (counts !== '' && !counts.startsWith('0 records'));
+    return (startOfDay(Date.now()) - startOfDay(ts)) / 86400000 > 7;
+  };
+  const backupLabel = (ts: number | null): string => {
+    if (ts == null) return 'Last backup: never — export one to protect your records';
+    const d = Math.floor((startOfDay(Date.now()) - startOfDay(ts)) / 86400000);
+    const when = d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+    return `Last backup: ${when} (${new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' })})`;
+  };
   const loadMeta = async () => {
     const [a, h, b, ds] = await Promise.all([getActive(), getHistory(), exportBackup(), getActiveDays()]);
     setCounts(`${a.length + h.length} records (${a.length} parked / ${h.length} completed)`);
@@ -29,21 +40,23 @@ export default function Settings() {
       toast.ok('Report downloaded.');
     } catch (e: any) { toast.err(e.message); }
   };
-  useEffect(() => { getSettings().then(s => { setFee(String(s.parkingFee)); }).catch(e => toast.err(String(e.message ?? e))); loadMeta(); }, []);
+  useEffect(() => { getSettings().then(s => { setFee(String(s.parkingFee)); setLastBackup(s.lastBackupAt ?? null); }).catch(e => toast.err(String(e.message ?? e))); loadMeta(); }, []);
   const saveFee = async () => {
     try { const s = await updateSettings({ parkingFee: Number(fee) }); setFee(String(s.parkingFee)); toast.ok('Parking fee saved.'); }
     catch (e: any) { toast.err(e.message); }
   };
+  const stampBackup = async () => { try { const s = await updateSettings({ lastBackupAt: Date.now() }); setLastBackup(s.lastBackupAt ?? null); } catch { /* reminder best-effort */ } };
   const doExport = async () => { const b = await exportBackup();
-    downloadTextFile(backupFilename(), JSON.stringify(b, null, 2), 'application/json'); };
-  const doImport = async (file: File) => { try { const j = JSON.parse(await file.text()); if (!confirm('Replace all local data with this backup?')) return; await importBackup(j); toast.ok('Backup restored.'); loadMeta(); } catch (e: any) { toast.err(e.message); } };
+    downloadTextFile(backupFilename(), JSON.stringify(b, null, 2), 'application/json'); await stampBackup(); };
+  const doImport = async (file: File) => { try { const j = JSON.parse(await file.text()); if (!confirm('Replace all local data with this backup?')) return; await importBackup(j); await stampBackup(); toast.ok('Backup restored.'); loadMeta(); } catch (e: any) { toast.err(e.message); } };
   const doClear = async () => {
     if (!confirmClear) { setConfirmClear(true); return; }
     try {
       const b = await exportBackup();
       downloadTextFile(backupFilename(), JSON.stringify(b, null, 2), 'application/json');
+      await stampBackup();
     } catch { /* backup best-effort; clear proceeds only on user intent */ }
-    await clearAll(); setConfirmClear(false); toast.ok('Backup downloaded — all data cleared.'); loadMeta();
+    await clearAll(); setConfirmClear(false); setLastBackup(null); toast.ok('Backup downloaded — all data cleared.'); loadMeta();
   };
   return (<div className="space-y-4"><h1 className="text-xl font-bold">Settings</h1>
     <div className="card space-y-3"><p className="font-semibold">Parking Fee</p>
@@ -53,7 +66,7 @@ export default function Settings() {
     <div className="card space-y-2"><p className="font-semibold">Data & storage</p>
       <button className="w-full py-3 border rounded-xl font-semibold" onClick={doExport}>Export Backup</button>
       <label className="w-full py-3 border rounded-xl font-semibold text-center block cursor-pointer">Import Backup<input type="file" accept="application/json" className="hidden" onChange={e => e.target.files?.[0] && doImport(e.target.files[0])} /></label>
-      <div className="pt-1 space-y-1"><p className="text-sm text-gray-600">{counts || '…'}</p>{storage && <p className="text-sm text-gray-600">{storage}</p>}{persisted != null && <p className="text-sm text-gray-600">protection: {persisted ? 'on' : 'standard'}</p>}<p className="text-sm text-gray-400">Local device only · v{__APP_VERSION__}</p></div></div>
+      <div className="pt-1 space-y-1"><p className="text-sm text-gray-600">{counts || '…'}</p>{storage && <p className="text-sm text-gray-600">{storage}</p>}{persisted != null && <p className="text-sm text-gray-600">protection: {persisted ? 'on' : 'standard'}</p>}<p className={`text-sm font-semibold ${backupStale(lastBackup) ? 'text-amber-800' : 'text-gray-600'}`}>{backupLabel(lastBackup)}</p><p className="text-sm text-gray-400">Local device only · v{__APP_VERSION__}</p></div></div>
     <div className="card space-y-3"><p className="font-semibold">Daily reports</p>
       <div className="hist-filter" role="group" aria-label="Report format">
         {(['csv', 'html', 'txt'] as const).map(x => <button key={x} onClick={() => setFormat(x)} aria-pressed={format === x} className={`hist-chip${format === x ? ' active' : ''}`}>{x.toUpperCase()}</button>)}

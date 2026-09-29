@@ -22,6 +22,17 @@ export default function Operations() {
   const [draft, setDraft] = useState('');
   const [rowErr, setRowErr] = useState('');
   const cancelRef = useRef(false);
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 600);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  const goTop = () => {
+    const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+  };
 
   const refresh = async () => {
     try {
@@ -152,6 +163,9 @@ export default function Operations() {
       </section>
 
     </div>
+      {showTop && list.length > 20 && (
+        <button className="back-top" onClick={goTop} aria-label="Scroll to top">↑</button>
+      )}
       {sel && (
         <div className="counter-sheet-backdrop" onClick={() => setSel(null)}>
           <div className="counter-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-label={`Check out ${sel.plateNumber}`}>

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { db } from '../../db/database';
 import { ToastProvider } from '../../app/toast';
@@ -31,6 +31,22 @@ describe('Settings view/edit', () => {
     fireEvent.click(screen.getByText('Save'));
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect((await db.settings.get('main'))?.parkingFee).toBe(20);
+  });
+  it('stamps last backup on export and shows today', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:x') as any;
+    URL.revokeObjectURL = vi.fn() as any;
+    render(<ToastProvider><Settings /></ToastProvider>);
+    await screen.findByDisplayValue('20');
+    fireEvent.click(screen.getByText('Export Backup'));
+    expect(await screen.findByText(/Last backup: today/)).toBeTruthy();
+    expect((await db.settings.get('main'))?.lastBackupAt).toBeDefined();
+  });
+  it('warns when backup stale or never', async () => {
+    await db.settings.put({ id: 'main', parkingFee: 20, lastBackupAt: Date.now() - 10 * 86400000 });
+    await db.transactions.add({ id: 'b1', plateNumber: 'P1', checkInAt: Date.now(), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    render(<ToastProvider><Settings /></ToastProvider>);
+    const el = await screen.findByText(/Last backup: 10 days ago/);
+    expect(el.className).toContain('text-amber-800');
   });
   it('shows daily reports without lot-hours gate', async () => {
     render(<ToastProvider><Settings /></ToastProvider>);
