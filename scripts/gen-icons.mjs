@@ -8,7 +8,8 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" vi
 const buf = Buffer.from(svg);
 await sharp(buf).resize(512, 512).png().toFile('public/icon-512.png');
 await sharp(buf).resize(192, 192).png().toFile('public/icon-192.png');
-for (const f of ['public/icon-512.png', 'public/icon-192.png']) {
+await sharp(buf).resize(180, 180).png().toFile('public/apple-touch-icon.png');
+for (const f of ['public/icon-512.png', 'public/icon-192.png', 'public/apple-touch-icon.png']) {
   const m = await sharp(f).metadata();
   console.log(f, m.width, 'x', m.height, m.format);
 }
