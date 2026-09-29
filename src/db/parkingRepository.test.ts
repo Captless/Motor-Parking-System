@@ -97,6 +97,25 @@ describe('parking', () => {
     expect(r.totalCollected).toBe(0); expect(r.revenueDeltaPct).toBeNull(); expect(r.entriesDeltaPct).toBeNull();
     expect(r.peakHour).toBeNull(); expect(r.outstanding).toEqual({ count: 0, amount: 0 });
   });
+  it('buckets count completed-unpaid per checkout day only', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'U1', plateNumber: 'U1', checkInAt: at(1, 8), checkOutAt: at(1, 9), fee: 20, status: 'completed', paymentStatus: 'unpaid' });
+    await db.transactions.add({ id: 'U2', plateNumber: 'U2', checkInAt: at(1, 8), checkOutAt: at(1, 10), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 10) });
+    await db.transactions.add({ id: 'U3', plateNumber: 'U3', checkInAt: at(0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    const buckets = await R.getDayBuckets(now - 1 * 86400000, now);
+    expect(buckets[0].unpaid).toBe(1);
+    expect(buckets[1].unpaid).toBe(0);
+  });
+  it('getActiveDays lists distinct days newest-first', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'G1', plateNumber: 'G1', checkInAt: at(2, 8), checkOutAt: at(0, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(0, 9) });
+    await db.transactions.add({ id: 'G2', plateNumber: 'G2', checkInAt: at(0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    const days = await R.getActiveDays();
+    expect(days.length).toBe(2);
+    expect(days[0] > days[1]).toBe(true);
+  });
   it('day drill lists only that day checkouts', async () => {
     const a = await R.create({ plateNumber: 'D1' }); await R.checkout(a.id);
     const today = await R.getDayTransactions(Date.now());

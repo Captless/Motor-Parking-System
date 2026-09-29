@@ -2,7 +2,7 @@ import { db, ensureSeed } from './database';
 import type { AppSettings, BackupFile, DailyStats, ParkingTransaction } from '../types/parking';
 import { normalizePlate, isValidPlate } from '../lib/validation';
 import { inDay, startOfDay } from '../lib/dates';
-export interface DayStats { day: number; entries: number; completed: number; collected: number; }
+export interface DayStats { day: number; entries: number; completed: number; collected: number; unpaid: number; }
 export async function getDayStats(day: number): Promise<DayStats> {
   const all = await db.transactions.toArray();
   return {
@@ -10,6 +10,7 @@ export async function getDayStats(day: number): Promise<DayStats> {
     entries: all.filter(t => inDay(t.checkInAt, day)).length,
     completed: all.filter(t => inDay(t.checkOutAt, day)).length,
     collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+    unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
   };
 }
 export async function getWeekStats(now = Date.now()): Promise<DayStats[]> {
@@ -22,6 +23,7 @@ export async function getWeekStats(now = Date.now()): Promise<DayStats[]> {
       entries: all.filter(t => inDay(t.checkInAt, day)).length,
       completed: all.filter(t => inDay(t.checkOutAt, day)).length,
       collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+      unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
     });
   }
   return out;
@@ -35,6 +37,7 @@ export async function getDayBuckets(fromDay: number, toDay: number): Promise<Day
       entries: all.filter(t => inDay(t.checkInAt, day)).length,
       completed: all.filter(t => inDay(t.checkOutAt, day)).length,
       collected: all.filter(t => t.paymentStatus === 'paid' && inDay(t.paidAt, day)).reduce((s, t) => s + t.fee, 0),
+      unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
     });
   }
   return out;
@@ -58,6 +61,16 @@ export async function getRangeSummary(from: number, to: number): Promise<RangeSu
     peakHour,
     outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
   };
+}
+export async function getActiveDays(): Promise<number[]> {
+  const all = await db.transactions.toArray();
+  const set = new Set<number>();
+  for (const t of all) {
+    set.add(startOfDay(t.checkInAt));
+    if (t.checkOutAt != null) set.add(startOfDay(t.checkOutAt));
+    if (t.paidAt != null) set.add(startOfDay(t.paidAt));
+  }
+  return [...set].sort((a, b) => b - a);
 }
 export async function getDayTransactions(day: number): Promise<ParkingTransaction[]> {
   const list = await db.transactions.where('status').equals('completed').reverse().sortBy('checkOutAt');

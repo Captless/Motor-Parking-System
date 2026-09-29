@@ -33,12 +33,19 @@ export default function Analytics() {
     const first = new Date(monthCursor);
     const lead = (first.getDay() + 6) % 7;
     const todayStart = startOfDay(Date.now());
-    return monthDays.days.map((d, i) => ({
-      ...d,
-      future: d.day > todayStart,
-      on: d.collected > 0,
-      lead: i === 0 ? lead : 0,
-    }));
+    const bestCollected = Math.max(0, ...monthDays.days.map(d => d.collected));
+    let bestSeen = false;
+    return monthDays.days.map((d, i) => {
+      const best = d.collected > 0 && d.collected === bestCollected && !bestSeen;
+      if (best) bestSeen = true;
+      return {
+        ...d,
+        future: d.day > todayStart,
+        on: d.collected > 0,
+        best,
+        lead: i === 0 ? lead : 0,
+      };
+    });
   }, [monthDays, monthCursor]);
 
   if (err) return <p className="counter-error">{err}</p>;
@@ -64,8 +71,13 @@ export default function Analytics() {
       ) : <p className="counter-sub">Loading…</p>}
       <section aria-label="Month calendar">
         <div className="cal-head">
-          <p className="analytics-title">{formatMonth(monthCursor)}</p>
           <div>
+            <p className="analytics-title">{formatMonth(monthCursor)}</p>
+            {monthDays && <p className="counter-sub">{formatPeso(monthDays.days.reduce((s, d) => s + d.collected, 0))} · {monthDays.days.reduce((s, d) => s + d.entries, 0)} bikes</p>}
+          </div>
+          <div>
+            {monthStart(monthCursor) !== monthStart(Date.now()) && (
+              <button className="hist-chip" onClick={() => setMonthCursor(monthStart(Date.now()))}>Today</button>)}
             <button className="cal-nav" onClick={() => setMonthCursor(addMonths(monthCursor, -1))} aria-label="Previous month">‹</button>
             <button className="cal-nav" onClick={() => setMonthCursor(addMonths(monthCursor, 1))} aria-label="Next month">›</button>
           </div>
@@ -75,15 +87,17 @@ export default function Analytics() {
           {cells.flatMap(c => [
             ...Array.from({ length: c.lead }, (_, k) => <span key={`gap-${c.day}-${k}`} />),
             <span key={c.day}
-              aria-label={c.on ? `${formatFullDate(c.day)}: ${formatPeso(c.collected)}, ${c.entries} bikes` : formatFullDate(c.day)}
+              aria-label={c.on ? `${formatFullDate(c.day)}: ${formatPeso(c.collected)}, ${c.entries} bikes${c.unpaid > 0 ? `, ${c.unpaid} unsettled` : ''}${c.best ? ', best day' : ''}` : formatFullDate(c.day)}
               className={`cal-cell${c.on ? ' on' : ''}${isToday(c.day) ? ' today' : ''}${c.future ? ' future' : ''}`}>
               <span className="cal-date">{new Date(c.day).getDate()}</span>
+              {c.best && <span className="cal-best" aria-hidden="true">★</span>}
               {c.on && <span className="cal-rev">{formatPesoCompact(c.collected)}</span>}
               {c.on && <span className="cal-bikes">{c.entries}</span>}
+              {c.unpaid > 0 && <span className="cal-dot" aria-hidden="true" />}
             </span>,
           ])}
         </div>
-        <p className="cal-legend">date · revenue · bikes</p>
+        <p className="cal-legend">date · revenue · bikes · <span className="cal-key-best">★</span> best day · <span className="cal-key-dot">●</span> unsettled</p>
       </section>
     </div>
   );
