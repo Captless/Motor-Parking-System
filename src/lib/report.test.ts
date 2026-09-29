@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'; import { dayReportCSV, dayReportHTML, dayReportTXT, reportFilename, backupFilename, summarizeDay } from './report';
+import { describe, it, expect } from 'vitest'; import { dayReportCSV, dayReportHTML, dayReportTXT, reportFilename, backupFilename, summarizeDay, coverageLabel, activityLabel, isLiveDay } from './report';
 import type { ParkingTransaction } from '../types/parking';
 const tx = (over: Partial<ParkingTransaction> & { id: string }): ParkingTransaction => ({
   plateNumber: 'A1', checkInAt: 0, fee: 20, status: 'completed', paymentStatus: 'paid', ...over,
@@ -9,7 +9,7 @@ describe('dayReportCSV', () => {
     const csv = dayReportCSV(day, [
       tx({ id: '1', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 3600000, paidAt: day + 3600000 }),
       tx({ id: '2', plateNumber: 'XYZ 2', checkInAt: day, checkOutAt: undefined, fee: 20, status: 'completed', paymentStatus: 'unpaid', paidAt: undefined }),
-    ]);
+    ], day);
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(csv).toContain('REPORT DATE,2026-09-23');
     expect(csv).toContain('TOTAL ENTRIES,2');
@@ -18,6 +18,40 @@ describe('dayReportCSV', () => {
     expect(csv).toContain('plate,check_in,check_out,duration,fee_php,status,payment,paid_at,overnight');
     expect(csv).toContain('NOTE,ongoing snapshot');
     expect(csv).toContain('ABC 1,12:00 PM,1:00 PM');
+  });
+  it('labels today ongoing and past days daily, with coverage + activity', () => {
+    const day = new Date(2026, 8, 23, 12).getTime();
+    const rows = [
+      tx({ id: '1', plateNumber: 'A1', checkInAt: new Date(2026, 8, 23, 6, 4).getTime(), checkOutAt: new Date(2026, 8, 23, 22, 42).getTime(), paidAt: new Date(2026, 8, 23, 22, 42).getTime() }),
+    ];
+    expect(isLiveDay(day, day)).toBe(true);
+    expect(isLiveDay(new Date(2026, 8, 22, 8).getTime(), day)).toBe(false);
+    expect(coverageLabel(day)).toContain('12:00 AM – 11:59 PM');
+    expect(activityLabel(day, rows, day)).toContain('6:04 AM');
+    expect(activityLabel(day, rows, day)).toContain('10:42 PM');
+    expect(activityLabel(day, [], day)).toBe('No activity recorded');
+    const liveCSV = dayReportCSV(day, rows, day);
+    expect(liveCSV).toContain('NOTE,ongoing snapshot');
+    expect(liveCSV).toContain('COVERAGE,');
+    expect(liveCSV).toContain('ACTIVITY,');
+    const pastCSV = dayReportCSV(new Date(2026, 8, 22, 12).getTime(), rows, day);
+    expect(pastCSV).not.toContain('ongoing snapshot');
+    expect(pastCSV).toContain('COVERAGE,');
+    const liveHTML = dayReportHTML(day, rows, day);
+    expect(liveHTML).toContain('Ongoing snapshot');
+    const pastHTML = dayReportHTML(new Date(2026, 8, 22, 12).getTime(), rows, day);
+    expect(pastHTML).toContain('Daily report');
+    expect(pastHTML).not.toContain('Ongoing snapshot');
+    const pastTXT = dayReportTXT(new Date(2026, 8, 22, 12).getTime(), rows, day);
+    expect(pastTXT).toContain('(daily report)');
+    expect(pastTXT).toContain('Covers ');
+    expect(pastTXT).toContain('Activity: ');
+  });
+  it('marks still-parked rows ongoing only for today', () => {
+    const day = new Date(2026, 8, 23, 12).getTime();
+    const rows = [tx({ id: 'o', plateNumber: 'O1', checkInAt: new Date(2026, 8, 23, 7, 0).getTime(), checkOutAt: undefined, fee: 20, status: 'parked', paymentStatus: 'unpaid', paidAt: undefined })];
+    expect(activityLabel(day, rows, day)).toContain('ongoing');
+    expect(activityLabel(new Date(2026, 8, 22, 12).getTime(), rows, day)).not.toContain('ongoing');
   });
   it('quotes commas/quotes and leaves missing times empty', () => {
     const day = new Date(2026, 8, 23, 12).getTime();

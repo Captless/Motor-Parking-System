@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { getRangeSummary, type RangeSummary } from '../../db/parkingRepository';
 import { formatPeso, formatPesoCompact } from '../../lib/currency';
 import { useToday } from '../../lib/useToday';
-import { formatFullDate, monthStart, yearStart, addMonths, formatMonth, startOfDay, isToday } from '../../lib/dates';
+import { formatFullDate, monthStart, weekStart, yearStart, addMonths, formatMonth, startOfDay, isToday } from '../../lib/dates';
 
 type Preset = 'today' | 'week' | 'month' | 'year';
-const PRESET_LABEL: Record<Preset, string> = { today: 'today', week: '7 days', month: 'this month', year: 'this year' };
+const PRESET_LABEL: Record<Preset, string> = { today: 'today', week: 'this week', month: 'this month', year: 'this year' };
 const fmtHour = (h: number): string => { const ap = h < 12 ? 'AM' : 'PM'; const n = h % 12 === 0 ? 12 : h % 12; return `${n} ${ap}`; };
 
 export default function Analytics() {
@@ -19,7 +19,7 @@ export default function Analytics() {
   useEffect(() => {
     const now = Date.now();
     const [from, to] = preset === 'today' ? [now, now]
-      : preset === 'week' ? [now - 6 * 86400000, now]
+      : preset === 'week' ? [weekStart(now), now]
       : preset === 'month' ? [monthStart(now), now]
       : [yearStart(now), now];
     getRangeSummary(from, to).then(setSum).catch(e => setErr(String(e.message ?? e)));
@@ -60,13 +60,13 @@ export default function Analytics() {
         {(['today', 'week', 'month', 'year'] as const).map(p => (
           <button key={p} onClick={() => setPreset(p)} aria-pressed={preset === p}
             className={`hist-chip${preset === p ? ' active' : ''}`}>
-            {p === 'today' ? 'Today' : p === 'week' ? '7 days' : p === 'month' ? 'This month' : 'This year'}
+            {p === 'today' ? 'Today' : p === 'week' ? 'This week' : p === 'month' ? 'This month' : 'This year'}
           </button>))}
       </div>
       {sum ? (
         <div className="kpi-grid">
           <div className="kpi"><p className="kpi-val money">{formatPeso(sum.totalCollected)}</p><p className="kpi-label">revenue · {PRESET_LABEL[preset]}</p></div>
-          <div className="kpi"><p className="kpi-val">{sum.totalEntries}</p><p className="kpi-label">bikes · {PRESET_LABEL[preset]}</p></div>
+          <div className="kpi"><p className="kpi-val">{sum.totalEntries}</p><p className="kpi-label">entries · {PRESET_LABEL[preset]}</p></div>
           <div className="kpi"><p className="kpi-val">{sum.peakHour ? fmtHour(sum.peakHour.hour) : '—'}</p><p className="kpi-label">peak hour</p></div>
           <div className="kpi warn-card"><p className="kpi-val warn">{formatPeso(sum.outstanding.amount)}</p><p className="kpi-label">unpaid</p></div>
         </div>
@@ -75,7 +75,7 @@ export default function Analytics() {
         <div className="cal-head">
           <div>
             <p className="analytics-title">{formatMonth(monthCursor)}</p>
-            {monthDays && <p className="counter-sub">{formatPeso(monthDays.days.reduce((s, d) => s + d.collected, 0))} · {monthDays.days.reduce((s, d) => s + d.entries, 0)} bikes</p>}
+            {monthDays && <p className="counter-sub">{formatPeso(monthDays.days.reduce((s, d) => s + d.collected, 0))} · {monthDays.days.reduce((s, d) => s + d.entries, 0)} entries</p>}
           </div>
           <div>
             {monthStart(monthCursor) !== monthStart(Date.now()) && (
@@ -89,17 +89,17 @@ export default function Analytics() {
           {cells.flatMap(c => [
             ...Array.from({ length: c.lead }, (_, k) => <span key={`gap-${c.day}-${k}`} />),
             <span key={c.day}
-              aria-label={c.on ? `${formatFullDate(c.day)}: ${formatPeso(c.collected)}, ${c.entries} bikes${c.unpaid > 0 ? `, ${c.unpaid} unsettled` : ''}${c.best ? ', best day' : ''}` : formatFullDate(c.day)}
+              aria-label={c.on ? `${formatFullDate(c.day)}: ${formatPeso(c.collected)}, ${c.entries} entries${c.unpaid > 0 ? `, ${c.unpaid} unsettled` : ''}${c.best ? ', best day' : ''}` : formatFullDate(c.day)}
               className={`cal-cell${c.on ? ' on' : ''}${isToday(c.day) ? ' today' : ''}${c.future ? ' future' : ''}`}>
               <span className="cal-date">{new Date(c.day).getDate()}</span>
               {c.best && <span className="cal-best" aria-hidden="true">★</span>}
               {c.on && <span className="cal-rev">{formatPesoCompact(c.collected)}</span>}
-              {c.on && <span className="cal-bikes">{c.entries}</span>}
+              {c.on && <span className="cal-entries">{c.entries}</span>}
               {c.unpaid > 0 && <span className="cal-dot" aria-hidden="true" />}
             </span>,
           ])}
         </div>
-        <p className="cal-legend">date · revenue · bikes · <span className="cal-key-best">★</span> best day · <span className="cal-key-dot">●</span> unsettled</p>
+        <p className="cal-legend">date · revenue · entries · <span className="cal-key-best">★</span> best day · <span className="cal-key-dot">●</span> unsettled</p>
       </section>
     </div>
   );

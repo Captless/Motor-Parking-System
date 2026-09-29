@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'; import { formatDateTime, formatDayLabel, formatFullDate, monthStart, yearStart, addMonths, formatMonth } from './dates';
+import { describe, it, expect } from 'vitest'; import { formatDateTime, formatDayLabel, formatFullDate, monthStart, weekStart, yearStart, addMonths, formatMonth } from './dates';
 describe('dates', () => {
   it('formatDateTime combines short date and time', () => {
     const ts = new Date(2026, 8, 28, 15, 4).getTime();
@@ -8,6 +8,17 @@ describe('dates', () => {
   it('day labels stay intact', () => {
     const ts = new Date(2026, 8, 28, 12).getTime();
     expect(formatDayLabel(ts)).toContain('28'); expect(formatFullDate(ts)).toContain('SEP 28');
+  });
+  it('weekStart snaps to Monday 00:00', () => {
+    const wed = new Date(2026, 8, 30, 15, 4).getTime();
+    const mon = new Date(weekStart(wed));
+    expect(mon.getDay()).toBe(1); expect(mon.getHours()).toBe(0); expect(mon.getMinutes()).toBe(0);
+    expect(mon.getDate()).toBe(28);
+    const monday = new Date(2026, 8, 28, 0, 30).getTime();
+    expect(new Date(weekStart(monday)).getDate()).toBe(28);
+    const sun = new Date(2026, 9, 4, 23, 59).getTime();
+    expect(new Date(weekStart(sun)).getDate()).toBe(28);
+    expect(new Date(weekStart(sun)).getMonth()).toBe(8);
   });
   it('month helpers navigate calendar months', () => {
     const ts = new Date(2026, 8, 15, 12).getTime();
