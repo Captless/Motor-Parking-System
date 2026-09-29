@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getRangeSummary, type RangeSummary } from '../../db/parkingRepository';
 import { formatPeso, formatPesoCompact } from '../../lib/currency';
-import { formatFullDate, monthStart, addMonths, formatMonth, startOfDay, isToday } from '../../lib/dates';
+import { formatFullDate, monthStart, yearStart, addMonths, formatMonth, startOfDay, isToday } from '../../lib/dates';
 
-type Preset = 'today' | 'week' | 'month';
+type Preset = 'today' | 'week' | 'month' | 'year';
+const PRESET_LABEL: Record<Preset, string> = { today: 'today', week: '7 days', month: 'this month', year: 'this year' };
 const fmtHour = (h: number): string => { const ap = h < 12 ? 'AM' : 'PM'; const n = h % 12 === 0 ? 12 : h % 12; return `${n} ${ap}`; };
 
 export default function Analytics() {
@@ -17,7 +18,8 @@ export default function Analytics() {
     const now = Date.now();
     const [from, to] = preset === 'today' ? [now, now]
       : preset === 'week' ? [now - 6 * 86400000, now]
-      : [monthStart(now), now];
+      : preset === 'month' ? [monthStart(now), now]
+      : [yearStart(now), now];
     getRangeSummary(from, to).then(setSum).catch(e => setErr(String(e.message ?? e)));
   }, [preset]);
 
@@ -46,16 +48,16 @@ export default function Analytics() {
       <div><h1 className="text-xl font-bold">Analytics</h1>
         <p className="hist-sub">{formatFullDate(Date.now())}</p></div>
       <div className="hist-filter" role="group" aria-label="Range">
-        {(['today', 'week', 'month'] as const).map(p => (
+        {(['today', 'week', 'month', 'year'] as const).map(p => (
           <button key={p} onClick={() => setPreset(p)} aria-pressed={preset === p}
             className={`hist-chip${preset === p ? ' active' : ''}`}>
-            {p === 'today' ? 'Today' : p === 'week' ? '7 days' : 'This month'}
+            {p === 'today' ? 'Today' : p === 'week' ? '7 days' : p === 'month' ? 'This month' : 'This year'}
           </button>))}
       </div>
       {sum ? (
         <div className="kpi-grid">
-          <div className="kpi"><p className="kpi-val money">{formatPeso(sum.totalCollected)}</p><p className="kpi-label">revenue</p></div>
-          <div className="kpi"><p className="kpi-val">{sum.totalEntries}</p><p className="kpi-label">bikes</p></div>
+          <div className="kpi"><p className="kpi-val money">{formatPeso(sum.totalCollected)}</p><p className="kpi-label">revenue · {PRESET_LABEL[preset]}</p></div>
+          <div className="kpi"><p className="kpi-val">{sum.totalEntries}</p><p className="kpi-label">bikes · {PRESET_LABEL[preset]}</p></div>
           <div className="kpi"><p className="kpi-val">{sum.peakHour ? fmtHour(sum.peakHour.hour) : '—'}</p><p className="kpi-label">peak hour</p></div>
           <div className="kpi warn-card"><p className="kpi-val warn">{formatPeso(sum.outstanding.amount)}</p><p className="kpi-label">unpaid</p></div>
         </div>

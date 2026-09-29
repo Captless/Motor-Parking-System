@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'; import { formatDateTime, formatDayLabel, formatFullDate, monthStart, addMonths, formatMonth } from './dates';
+import { describe, it, expect } from 'vitest'; import { formatDateTime, formatDayLabel, formatFullDate, monthStart, yearStart, addMonths, formatMonth } from './dates';
 describe('dates', () => {
   it('formatDateTime combines short date and time', () => {
     const ts = new Date(2026, 8, 28, 15, 4).getTime();
@@ -16,5 +16,8 @@ describe('dates', () => {
     expect(formatMonth(ts)).toBe('September 2026');
     expect(new Date(addMonths(ts, 1)).getMonth()).toBe(9);
     expect(new Date(addMonths(ts, -1)).getMonth()).toBe(7);
+    const ys = new Date(yearStart(ts));
+    expect(ys.getMonth()).toBe(0); expect(ys.getDate()).toBe(1);
+    expect(ys.getHours()).toBe(0); expect(ys.getMinutes()).toBe(0);
   });
 });

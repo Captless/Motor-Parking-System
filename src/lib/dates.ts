@@ -8,5 +8,6 @@ export function formatDayLabel(ts: number): string { const d = new Date(ts); ret
 export function formatFullDate(ts: number): string { return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(); }
 export function formatDateTime(ts: number): string { const d = new Date(ts); return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`; }
 export const monthStart = (ts: number): number => { const d = new Date(ts); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime(); };
+export const yearStart = (ts: number): number => { const d = new Date(ts); d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d.getTime(); };
 export const addMonths = (ts: number, n: number): number => { const d = new Date(ts); d.setMonth(d.getMonth() + n, 1); d.setHours(0, 0, 0, 0); return d.getTime(); };
 export function formatMonth(ts: number): string { return new Date(ts).toLocaleDateString([], { month: 'long', year: 'numeric' }); }
