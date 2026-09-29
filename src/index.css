@@ -112,7 +112,7 @@ body { @apply bg-white text-gray-900; }
 .hist-chip.active { @apply bg-gray-900 text-white; }
 .hist-empty { @apply text-sm text-gray-500 py-8 text-center; }
 .hist-scroll { @apply border border-gray-200 rounded-xl overflow-auto; max-height: 60vh; }
-.hist-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.hist-table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
 .hist-table thead th { @apply text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 bg-gray-50; position: sticky; top: 0; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; z-index: 1; }
 .hist-table tbody td { padding: 12px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
 .hist-table tbody tr:active { background: #f9fafb; }
@@ -120,8 +120,9 @@ body { @apply bg-white text-gray-900; }
 .hist-table td.num, .hist-table th.num { text-align: right; }
 .hist-table td.paid { @apply text-green-800 font-semibold; }
 .hist-table td.unpaid { @apply text-amber-800 font-semibold; }
+.hist-paid-at { display: block; font-size: 11px; font-weight: 500; color: #6b7280; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hist-table tfoot td { padding: 12px; font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb; position: sticky; bottom: 0; }
-.hist-batch { margin-bottom: 12px; min-width: 560px; }
+.hist-batch { margin-bottom: 12px; min-width: 480px; }
 .hist-batch:last-of-type { margin-bottom: 0; }
 .hist-batch-head { @apply flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-700 border border-gray-200; font-variant-numeric: tabular-nums; }
-.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; min-width: 560px; }
+.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; min-width: 480px; }

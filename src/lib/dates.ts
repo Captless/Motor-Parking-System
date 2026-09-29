@@ -6,3 +6,4 @@ export function formatDuration(from: number, to = Date.now()): string { const m 
 export const isToday = (ts: number, now = Date.now()): boolean => startOfDay(ts) === startOfDay(now);
 export function formatDayLabel(ts: number): string { const d = new Date(ts); return `${d.toLocaleDateString([], { weekday: 'short' })} ${d.getDate()}`; }
 export function formatFullDate(ts: number): string { return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(); }
+export function formatDateTime(ts: number): string { const d = new Date(ts); return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`; }

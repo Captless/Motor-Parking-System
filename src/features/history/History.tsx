@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'; import { getHistory, markPaid } from '../../db/parkingRepository';
-import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatDuration, formatTime, formatFullDate } from '../../lib/dates';
+import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatTime, formatFullDate, formatDateTime } from '../../lib/dates';
 import { groupByDay } from '../../lib/history';
 import { useToast } from '../../app/toast';
 export default function History() {
@@ -30,15 +30,14 @@ export default function History() {
           <section key={g.day} className="hist-batch" aria-label={formatFullDate(g.day)}>
             <div className="hist-batch-head"><span>{formatFullDate(g.day)}</span><span>{g.items.length} · {formatPeso(g.collected)}</span></div>
             <table className="hist-table">
-              <thead><tr><th scope="col">Plate</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Time</th><th scope="col" className="num">Fee</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+              <thead><tr><th scope="col">Plate</th><th scope="col">In</th><th scope="col">Out</th><th scope="col" className="num">Fee</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
               <tbody>{g.items.map(t => (
                 <tr key={t.id}>
                   <td className="plate">{t.plateNumber}</td>
                   <td>{formatTime(t.checkInAt)}</td>
                   <td>{t.checkOutAt ? formatTime(t.checkOutAt) : '—'}</td>
-                  <td>{t.checkOutAt ? formatDuration(t.checkInAt, t.checkOutAt) : '—'}</td>
                   <td className="num">{formatPeso(t.fee)}</td>
-                  <td className={t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}>{t.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}</td>
+                  <td className={t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}>{t.paymentStatus === 'paid' ? (<>Paid{t.paidAt ? <span className="hist-paid-at">{formatDateTime(t.paidAt)}</span> : null}</>) : 'Unpaid'}</td>
                   <td>{t.paymentStatus === 'paid' ? '—' : <button className="hist-settle" onClick={() => settle(t)}>Settle</button>}</td>
                 </tr>))}
               </tbody>
