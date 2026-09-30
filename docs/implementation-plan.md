@@ -196,7 +196,7 @@ Default values:
 
 ```text
 businessName: "Motor Parking"
-parkingFee: 20
+parkingFee: 30
 ```
 
 Use a schema version from the beginning so future migrations are possible.
@@ -634,7 +634,7 @@ Backup structure:
   "exportedAt": 0,
   "settings": {
     "businessName": "Motor Parking",
-    "parkingFee": 20
+    "parkingFee": 30
   },
   "transactions": []
 }

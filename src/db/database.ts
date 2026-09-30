@@ -8,5 +8,5 @@ export class ParkingDB extends Dexie {
 export const db = new ParkingDB();
 export async function ensureSeed(): Promise<void> {
   const s = await db.settings.get('main');
-  if (!s) await db.settings.put({ id: 'main', parkingFee: 20 });
+  if (!s) await db.settings.put({ id: 'main', parkingFee: 30 });
 }

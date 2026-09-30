@@ -121,7 +121,7 @@ export async function getSettings(): Promise<AppSettings> {
   await ensureSeed();
   const raw = (await db.settings.get('main')) as AppSettings & { businessName?: unknown; openMin?: unknown; closeMin?: unknown };
   let dirty = false;
-  if (!Number.isInteger(raw.parkingFee)) { raw.parkingFee = 20; dirty = true; }
+  if (!Number.isInteger(raw.parkingFee)) { raw.parkingFee = 30; dirty = true; }
   if (dirty) await db.settings.put({ id: 'main', parkingFee: raw.parkingFee, lastBackupAt: raw.lastBackupAt });
   return { id: 'main', parkingFee: raw.parkingFee, lastBackupAt: raw.lastBackupAt };
 }

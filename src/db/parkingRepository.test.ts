@@ -27,6 +27,10 @@ describe('parking', () => {
     await expect(R.checkout(t.id)).rejects.toThrow();
   });
   it('fee snapshot survives setting change', async () => { const t = await R.create({ plateNumber: 'C3' }); await R.updateSettings({ parkingFee: 25 }); expect((await R.getById(t.id))?.fee).toBe(20); });
+  it('fresh install defaults fee to 30', async () => {
+    await db.settings.clear();
+    expect((await R.getSettings()).parkingFee).toBe(30);
+  });
   it('settings default fee and ignore legacy lot-hours backup', async () => {
     const s = await R.getSettings();
     expect(s.parkingFee).toBe(20);

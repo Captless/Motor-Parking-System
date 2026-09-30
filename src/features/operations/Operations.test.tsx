@@ -19,9 +19,9 @@ describe('Operations scroll shortcuts', () => {
     render(<ToastProvider><Operations /></ToastProvider>);
     await screen.findByText('PLATE 0');
     fireEvent.click(screen.getByLabelText('Remove PLATE 0'));
-    expect(await screen.findByText('Delete?')).toBeTruthy();
+    expect(await screen.findByText('Delete')).toBeTruthy();
     expect(await db.transactions.get('p0')).toBeTruthy();
-    fireEvent.click(screen.getByText('Delete?'));
+    fireEvent.click(screen.getByText('Delete'));
     await screen.findByText(/Removed PLATE 0/);
     expect(await db.transactions.get('p0')).toBeUndefined();
   });

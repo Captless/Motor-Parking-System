@@ -162,7 +162,7 @@ export default function Operations() {
                 )}
                 <span className={`counter-status ${t.paymentStatus === 'paid' ? 'is-paid' : ''}`}>{t.paymentStatus === 'paid' ? 'Paid ✓' : 'Unpaid'}</span>
                 <span className="counter-meta">{formatDuration(t.checkInAt)} · {formatPeso(t.fee)}</span>
-                <button className={`counter-remove${removeId === t.id ? ' armed' : ''}`} onClick={() => askRemove(t)} aria-label={removeId === t.id ? `Confirm remove ${t.plateNumber}` : `Remove ${t.plateNumber}`}>{removeId === t.id ? 'Delete?' : '✕'}</button>
+                <button className={`counter-remove${removeId === t.id ? ' armed' : ''}`} onClick={() => askRemove(t)} aria-label={removeId === t.id ? `Confirm remove ${t.plateNumber}` : `Remove ${t.plateNumber}`}>{removeId === t.id ? 'Delete' : '✕'}</button>
               </div>
               {editingId === t.id && rowErr ? <p className="counter-row-error">{rowErr}</p> : null}
               <div className="counter-row-actions">
