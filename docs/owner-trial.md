@@ -10,6 +10,9 @@ installed apps keep their data far safer than browser tabs.
 - **Paid:** tap the UNPAID badge when the customer pays (it turns green).
 - **Checkout:** Out → Confirm checkout. Unpaid checkouts stay listed and can be
   **Settled later from History** (Action column) when the customer returns.
+- **Operations header:** Collected = today's takings plus overnight holds
+  still parked (shown as "incl. ₱X overnight"). It never resets at
+  midnight while paid bikes are still on the lot.
 - **History:** past stays grouped by day, with paid times and totals.
 - **Analytics:** revenue, bikes, peak hour, and unpaid per Today / 7 days /
   This month / This year, plus the month calendar.

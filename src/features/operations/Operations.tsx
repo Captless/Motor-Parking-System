@@ -94,7 +94,7 @@ export default function Operations() {
               const unpaid = list.filter(t => t.paymentStatus !== 'paid').reduce((s, t) => s + t.fee, 0);
               return (<div className="stat-strip">
                 <div className="stat-cell"><p className="stat-val">{stats.parked}</p><p className="stat-label">Parked</p></div>
-                <div className="stat-cell"><p className="stat-val">{formatPeso(stats.collectedToday)}</p><p className="stat-label">Collected</p></div>
+                <div className="stat-cell"><p className="stat-val">{formatPeso(stats.collectedToday + stats.collectedHeld)}</p><p className="stat-label">Collected</p>{stats.collectedHeld > 0 && <p className="stat-label">incl. {formatPeso(stats.collectedHeld)} overnight</p>}</div>
                 <div className="stat-cell"><p className="stat-val unpaid">{formatPeso(unpaid)}</p><p className="stat-label">Unpaid</p></div>
               </div>);
             })()}

@@ -414,6 +414,15 @@ paymentStatus === "paid"
 
 and whose `paidAt` falls within today.
 
+### Operations Header Collected (Lot-State Gauge)
+
+The Operations screen shows `collectedToday + collectedHeld`, where
+`collectedHeld` sums `fee` for currently-parked paid transactions whose
+revenue day (`firstPaidAt ?? paidAt`) is before today. Overnight holds
+stay visible across midnight; checked-out bikes leave the gauge.
+Daily revenue reporting (Analytics, History, downloaded reports) always
+uses the Collected Today rule above and is unaffected.
+
 Use local device time consistently.
 
 ---

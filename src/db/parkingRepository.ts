@@ -183,12 +183,15 @@ export async function getHistory(search = '', payment: 'all' | 'paid' | 'unpaid'
   return list;
 }
 export async function getDailyStats(now = Date.now()): Promise<DailyStats> {
-  const [parked, all] = await Promise.all([db.transactions.where('status').equals('parked').count(), db.transactions.toArray()]);
+  const all = await db.transactions.toArray();
+  const lot = all.filter(t => t.status === 'parked');
+  const dayStart = startOfDay(now);
   return {
-    parked,
+    parked: lot.length,
     entriesToday: all.filter(t => inDay(t.checkInAt, now)).length,
     completedToday: all.filter(t => inDay(t.checkOutAt, now)).length,
     collectedToday: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), now)).reduce((s, t) => s + t.fee, 0),
+    collectedHeld: lot.filter(t => t.paymentStatus === 'paid' && (revenueDay(t) ?? Infinity) < dayStart).reduce((s, t) => s + t.fee, 0),
   };
 }
 export async function exportBackup(): Promise<BackupFile> {

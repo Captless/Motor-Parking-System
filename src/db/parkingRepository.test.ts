@@ -190,6 +190,27 @@ describe('parking', () => {
     const old = await R.getDayTransactions(Date.now() - 86400000 * 3);
     expect(old.find(t => t.id === a.id)).toBeFalsy();
   });
+  it('collectedHeld carries overnight parked-paid, never double-counts', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'H1', plateNumber: 'H1', checkInAt: at(1, 8), fee: 20, status: 'parked', paymentStatus: 'paid', paidAt: at(1, 9), firstPaidAt: at(1, 9) });
+    await db.transactions.add({ id: 'H2', plateNumber: 'H2', checkInAt: at(0, 8), checkOutAt: at(0, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(0, 9), firstPaidAt: at(0, 9) });
+    await db.transactions.add({ id: 'H3', plateNumber: 'H3', checkInAt: at(0, 7), fee: 20, status: 'parked', paymentStatus: 'paid', paidAt: at(0, 8), firstPaidAt: at(0, 8) });
+    await db.transactions.add({ id: 'H4', plateNumber: 'H4', checkInAt: at(0, 7), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    const s = await R.getDailyStats(now);
+    expect(s.collectedToday).toBe(40);
+    expect(s.collectedHeld).toBe(20);
+    await R.markUnpaid('H1');
+    expect((await R.getDailyStats(now)).collectedHeld).toBe(0);
+  });
+  it('yesterday-paid checkout-today leaves today clean', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'C1', plateNumber: 'C1', checkInAt: at(1, 8), checkOutAt: at(0, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 9), firstPaidAt: at(1, 9) });
+    const s = await R.getDailyStats(now);
+    expect(s.collectedToday).toBe(0); expect(s.collectedHeld).toBe(0);
+    expect((await R.getDailyStats(at(1, 12))).collectedToday).toBe(20);
+  });
   it('dashboard excludes prev-day', async () => {
     const t = await R.create({ plateNumber: 'E5' }); await R.markPaid(t.id); await R.checkout(t.id);
     const y = Date.now() - 86400000; const s = await R.getDailyStats(y); expect(s.collectedToday).toBe(0);
