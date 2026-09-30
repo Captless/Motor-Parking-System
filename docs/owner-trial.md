@@ -45,8 +45,10 @@
 
 ## 5. Analytics
 
-- Tabs: **Today / This week / This month / This year.**
-  This week means Monday–Sunday of the current week.
+- Tabs: **All time (first, shown by default) / Today / This week /
+  This month / This year.** This week means Monday–Sunday of the
+  current week. The cards follow the selected tab; the month
+  calendar below always shows the current month.
 - Cards: revenue · entries · peak hour · unpaid.
 - The month calendar shows each day's revenue and entries.
   ★ marks the best day, ● marks days with unsettled payments.

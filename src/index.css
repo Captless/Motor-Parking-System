@@ -125,7 +125,7 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .hist-sub { @apply text-sm text-gray-500; font-variant-numeric: tabular-nums; }
 .hist-toolbar { @apply flex flex-col gap-2; }
 .hist-search { @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900; }
-.hist-filter { @apply flex gap-1 bg-gray-100 rounded-xl p-1 w-fit; }
+.hist-filter { @apply flex flex-wrap gap-1 bg-gray-100 rounded-xl p-1 w-fit; }
 .hist-chip { @apply px-4 py-2 rounded-lg text-sm font-semibold text-gray-500; min-height: 40px; }
 .hist-chip.active { @apply bg-gray-900 text-white; }
 .hist-empty { @apply text-sm text-gray-500 py-8 text-center; }

@@ -62,6 +62,10 @@ export async function getRangeSummary(from: number, to: number): Promise<RangeSu
     outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
   };
 }
+export async function getOldestDay(): Promise<number | null> {
+  const first = await db.transactions.orderBy('checkInAt').first();
+  return first ? startOfDay(first.checkInAt) : null;
+}
 export async function getActiveDays(): Promise<number[]> {
   const all = await db.transactions.toArray();
   const set = new Set<number>();
