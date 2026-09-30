@@ -5,9 +5,9 @@ body { @apply bg-white text-gray-900; }
 .btn-primary { @apply w-full bg-gray-900 text-white text-lg font-semibold py-4 rounded-xl active:bg-gray-700 disabled:opacity-50; }
 .input { @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-gray-900; }
 .card { @apply bg-white rounded-xl border border-gray-200 p-4; }
-.nav-link { @apply flex-1 text-center py-3 text-sm font-semibold text-gray-500; white-space: nowrap; }
+.nav-link { @apply flex-1 text-center text-sm font-semibold text-gray-500; display: flex; align-items: center; justify-content: center; min-height: var(--tabbar-h); white-space: nowrap; }
 nav { padding-bottom: env(safe-area-inset-bottom); }
-.nav-link.active { @apply text-gray-900 border-t-2 border-gray-900; }
+.nav-link.active { @apply text-gray-900; box-shadow: inset 0 2px 0 #111827; }
 
 /* Counter — single-column ops screen */
 .counter { @apply space-y-6; }

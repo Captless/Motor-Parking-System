@@ -78,7 +78,11 @@
 
 ## 8. Updates and problems
 
-- Updates install automatically — just close and reopen the app.
+- New update? Do all three steps, in order:
+  1. Close the app fully (swipe it away, don't just switch away).
+  2. Reopen it with mobile data on.
+  3. Settings → Data & storage → check the version number moved
+     (e.g. v1.0.0 → v1.0.1). If it didn't move, repeat step 1.
 - If a red message appears, it goes away on its own after a few
   seconds (or tap it to dismiss early).
 - If the app ever shows an error card, tap Reload. If a problem
