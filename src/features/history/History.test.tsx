@@ -26,11 +26,19 @@ describe('History actions', () => {
     const settleRow = (await screen.findAllByText('Settle'))[0].closest('tr')!;
     expect(settleRow.textContent).toContain('CCC 3');
   });
-  it('renders mobile card hooks with inline fee and time range', async () => {
+  it('separate fixed action column, date-only paid line', async () => {
     const { container } = render(<ToastProvider><History /></ToastProvider>);
     await screen.findByText('Settle');
-    expect(container.querySelector('.hist-fee-inline')?.textContent).toContain('₱20');
-    expect(container.querySelector('.hist-range-out')?.textContent).toContain('9:10 AM');
-    expect(container.querySelectorAll('td.act').length).toBe(3);
+    expect(container.querySelectorAll('table')[0].querySelectorAll('thead th').length).toBe(6);
+    expect(screen.getAllByText('Action').length).toBeGreaterThan(0);
+    const paidAt = container.querySelector('.hist-paid-at')?.textContent ?? '';
+    expect(paidAt).toMatch(/[A-Z][a-z]{2} \d{1,2}/);
+    expect(paidAt).not.toMatch(/\d{1,2}:\d{2}/);
+    const actions = [...container.querySelectorAll('td.act-col')];
+    expect(actions.length).toBe(3);
+    expect(container.querySelectorAll('th.st-col').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('td.st-col').length).toBe(3);
+    const unpaid = actions.find(c => c.closest('tr')?.textContent?.includes('CCC 3'));
+    expect(unpaid?.querySelector('button')?.textContent).toBe('Settle');
   });
 });

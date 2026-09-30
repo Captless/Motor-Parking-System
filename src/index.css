@@ -128,39 +128,28 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .hist-chip.active { @apply bg-gray-900 text-white; }
 .hist-empty { @apply text-sm text-gray-500 py-8 text-center; }
 .hist-scroll { @apply border border-gray-200 rounded-xl overflow-auto; max-height: 60vh; }
-.hist-table { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
-.hist-table thead th { @apply text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 bg-gray-50; position: sticky; top: 0; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; z-index: 1; }
+.hist-table { width: 100%; min-width: 500px; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.hist-table thead th { @apply text-left text-[11px] font-bold uppercase tracking-widest text-gray-500 bg-gray-50; position: sticky; top: 34px; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; z-index: 1; }
 .hist-table tbody td { padding: 12px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
 .hist-table tbody tr:active { background: #f9fafb; }
 .hist-table td.plate { font-weight: 800; letter-spacing: 0.02em; }
 .hist-table td.num, .hist-table th.num { text-align: right; }
 .hist-table td.paid { @apply text-green-800 font-semibold; }
 .hist-table td.unpaid { @apply text-amber-800 font-semibold; }
-.hist-fee-inline { display: none; }
-.hist-range-out { display: none; }
+th.act-col, td.act-col { width: 96px; min-width: 96px; }
+th.st-col, td.st-col { width: 92px; min-width: 92px; }
+.act-col .hist-settle, .act-col .hist-undo { width: 100%; }
+.hist-table { min-width: 500px; }
 @media (max-width: 1023.98px) {
-  .hist-scroll { overflow-x: clip; overflow-y: visible; max-height: none; }
-  .hist-batch, .hist-grand { min-width: 0; }
-  .hist-table { min-width: 0; }
-  .hist-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .hist-table, .hist-table tbody { display: block; }
-  .hist-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
-  .hist-table tbody td { display: block; border: none; padding: 0; white-space: normal; }
-  .hist-table td.plate { grid-column: 1; grid-row: 1; font-size: 1rem; }
-  .hist-fee-inline { display: inline; font-size: 0.875rem; font-weight: 700; color: #4b5563; }
-  .hist-table td.st { grid-column: 2; grid-row: 1; align-self: center; }
-  .hist-paid-at { display: none; }
-  .hist-table td.time-in { grid-column: 1 / -1; color: #4b5563; font-size: 0.875rem; }
-  .hist-table td.time-in::before { content: "In "; }
-  .hist-range-out { display: inline; }
-  .hist-table td.time-out, .hist-table td.fee-col { display: none; }
-  .hist-table td.act { grid-column: 1 / -1; }
-  .hist-table td.act:has(> .hist-na) { display: none; }
-  .hist-settle, .hist-undo { width: 100%; }
+  .hist-table tbody td { padding: 8px 10px; }
+  .hist-table thead th { padding: 8px 10px; }
+  .hist-settle { padding: 6px 10px; font-size: 11px; min-height: 32px; }
+  .hist-undo { min-height: 32px; font-size: 11px; }
 }
 .hist-paid-at { display: block; font-size: 11px; font-weight: 500; color: #6b7280; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hist-table tfoot td { padding: 12px; font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb; position: sticky; bottom: 0; }
-.hist-batch { margin-bottom: 12px; min-width: 600px; }
+.hist-batch { margin-bottom: 12px; min-width: 500px; }
 .hist-batch:last-of-type { margin-bottom: 0; }
-.hist-batch-head { @apply flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-700 border border-gray-200; font-variant-numeric: tabular-nums; }
-.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; min-width: 600px; }
+.hist-batch-head { @apply flex items-center justify-between gap-2 px-3 bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-700 border border-gray-200; font-variant-numeric: tabular-nums; position: sticky; top: 0; z-index: 3; height: 34px; }
+.hist-batch-head > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hist-grand { padding: 12px; font-weight: 700; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-variant-numeric: tabular-nums; position: sticky; bottom: 0; min-width: 500px; }

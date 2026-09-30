@@ -7,6 +7,7 @@ export const isToday = (ts: number, now = Date.now()): boolean => startOfDay(ts)
 export function formatDayLabel(ts: number): string { const d = new Date(ts); return `${d.toLocaleDateString([], { weekday: 'short' })} ${d.getDate()}`; }
 export function formatFullDate(ts: number): string { return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(); }
 export function formatDateTime(ts: number): string { const d = new Date(ts); return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`; }
+export function formatShortDate(ts: number): string { return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
 export const weekStart = (ts: number): number => { const d = new Date(ts); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
 export const monthStart = (ts: number): number => { const d = new Date(ts); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime(); };
 export const yearStart = (ts: number): number => { const d = new Date(ts); d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d.getTime(); };
