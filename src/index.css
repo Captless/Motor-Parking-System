@@ -136,6 +136,28 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .hist-table td.num, .hist-table th.num { text-align: right; }
 .hist-table td.paid { @apply text-green-800 font-semibold; }
 .hist-table td.unpaid { @apply text-amber-800 font-semibold; }
+.hist-fee-inline { display: none; }
+.hist-range-out { display: none; }
+@media (max-width: 1023.98px) {
+  .hist-scroll { overflow-x: clip; overflow-y: visible; max-height: none; }
+  .hist-batch, .hist-grand { min-width: 0; }
+  .hist-table { min-width: 0; }
+  .hist-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .hist-table, .hist-table tbody { display: block; }
+  .hist-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  .hist-table tbody td { display: block; border: none; padding: 0; white-space: normal; }
+  .hist-table td.plate { grid-column: 1; grid-row: 1; font-size: 1rem; }
+  .hist-fee-inline { display: inline; font-size: 0.875rem; font-weight: 700; color: #4b5563; }
+  .hist-table td.st { grid-column: 2; grid-row: 1; align-self: center; }
+  .hist-paid-at { display: none; }
+  .hist-table td.time-in { grid-column: 1 / -1; color: #4b5563; font-size: 0.875rem; }
+  .hist-table td.time-in::before { content: "In "; }
+  .hist-range-out { display: inline; }
+  .hist-table td.time-out, .hist-table td.fee-col { display: none; }
+  .hist-table td.act { grid-column: 1 / -1; }
+  .hist-table td.act:has(> .hist-na) { display: none; }
+  .hist-settle, .hist-undo { width: 100%; }
+}
 .hist-paid-at { display: block; font-size: 11px; font-weight: 500; color: #6b7280; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hist-table tfoot td { padding: 12px; font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb; position: sticky; bottom: 0; }
 .hist-batch { margin-bottom: 12px; min-width: 600px; }

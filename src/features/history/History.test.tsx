@@ -26,4 +26,11 @@ describe('History actions', () => {
     const settleRow = (await screen.findAllByText('Settle'))[0].closest('tr')!;
     expect(settleRow.textContent).toContain('CCC 3');
   });
+  it('renders mobile card hooks with inline fee and time range', async () => {
+    const { container } = render(<ToastProvider><History /></ToastProvider>);
+    await screen.findByText('Settle');
+    expect(container.querySelector('.hist-fee-inline')?.textContent).toContain('₱20');
+    expect(container.querySelector('.hist-range-out')?.textContent).toContain('9:10 AM');
+    expect(container.querySelectorAll('td.act').length).toBe(3);
+  });
 });

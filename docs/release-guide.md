@@ -4,10 +4,12 @@
 
 ## Session Memory (keep current)
 
-- Current version: `1.0.1`
+- Current version: `1.0.2`
 - Live on owner's phone: `1.0.0`
-- In flight: `1.0.1` — first visible release (version plumbing, tab-bar
-  consistency, update procedure). Not yet merged/deployed.
+- In flight: `1.0.2` — History mobile cards (shortened, no swipe),
+  mobile list unbind. Not yet merged/deployed.
+- Shipped: `1.0.1` — visible versioning, tab-bar consistency,
+  update procedure.
 
 ## Version rules
 
