@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { create, getActive, getById, checkout, markPaid, markUnpaid, renamePlate, getDailyStats } from '../../db/parkingRepository';
+import { create, getActive, getById, checkout, markPaid, markUnpaid, renamePlate, removeParked, getDailyStats } from '../../db/parkingRepository';
 import type { DailyStats, ParkingTransaction } from '../../types/parking';
 import { formatPeso } from '../../lib/currency';
 import { formatDuration, formatTime, formatFullDate } from '../../lib/dates';
@@ -22,6 +22,26 @@ export default function Operations() {
   const [draft, setDraft] = useState('');
   const [rowErr, setRowErr] = useState('');
   const cancelRef = useRef(false);
+  const [removeId, setRemoveId] = useState<string | null>(null);
+  const removeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (removeTimer.current) clearTimeout(removeTimer.current); }, []);
+  const askRemove = async (t: ParkingTransaction) => {
+    if (t.paymentStatus === 'paid') { toast.err(`Mark ${t.plateNumber} unpaid first to remove.`); return; }
+    if (removeId === t.id) {
+      if (removeTimer.current) clearTimeout(removeTimer.current);
+      setRemoveId(null);
+      try {
+        const plate = await removeParked(t.id);
+        if (sel?.id === t.id) setSel(null);
+        if (editingId === t.id) { setEditingId(null); setRowErr(''); }
+        toast.ok(`Removed ${plate}.`); await refresh();
+      } catch (e: any) { toast.err(e.message); }
+      return;
+    }
+    if (removeTimer.current) clearTimeout(removeTimer.current);
+    setRemoveId(t.id);
+    removeTimer.current = setTimeout(() => setRemoveId(cur => (cur === t.id ? null : cur)), 4000);
+  };
   const [showTop, setShowTop] = useState(false);
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 600);
@@ -142,6 +162,7 @@ export default function Operations() {
                 )}
                 <span className={`counter-status ${t.paymentStatus === 'paid' ? 'is-paid' : ''}`}>{t.paymentStatus === 'paid' ? 'Paid ✓' : 'Unpaid'}</span>
                 <span className="counter-meta">{formatDuration(t.checkInAt)} · {formatPeso(t.fee)}</span>
+                <button className={`counter-remove${removeId === t.id ? ' armed' : ''}`} onClick={() => askRemove(t)} aria-label={removeId === t.id ? `Confirm remove ${t.plateNumber}` : `Remove ${t.plateNumber}`}>{removeId === t.id ? 'Delete?' : '✕'}</button>
               </div>
               {editingId === t.id && rowErr ? <p className="counter-row-error">{rowErr}</p> : null}
               <div className="counter-row-actions">

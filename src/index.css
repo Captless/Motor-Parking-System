@@ -50,6 +50,8 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .counter-toggle { @apply flex-1 py-3 rounded-xl font-semibold text-gray-900 border border-gray-300 bg-white active:bg-gray-100; min-height: 48px; }
 .counter-toggle.is-paid { @apply text-green-800 border-green-600 bg-green-50 active:bg-green-100; }
 .counter-meta { @apply text-sm text-gray-500 whitespace-nowrap ml-auto; font-variant-numeric: tabular-nums; }
+.counter-remove { @apply text-sm font-bold text-red-300 active:text-red-600 whitespace-nowrap; min-width: 44px; min-height: 44px; }
+.counter-remove.armed { @apply text-xs font-bold text-red-800 border border-red-300 bg-red-50 rounded-lg px-2; }
 .counter-row-actions { @apply flex gap-2; }
 .counter-out { @apply flex-1 py-3 bg-gray-900 text-white rounded-xl font-bold active:bg-gray-700; min-height: 48px; }
 .hist-settle { @apply px-3 py-2 rounded-lg text-xs font-bold bg-gray-900 text-white active:bg-gray-700 whitespace-nowrap disabled:opacity-40; min-height: 40px; }

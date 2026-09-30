@@ -156,6 +156,11 @@ export async function renamePlate(id: string, newPlate: string): Promise<Parking
   const next: ParkingTransaction = { ...tx, plateNumber: plate };
   await db.transactions.put(next); return next;
 }
+export async function removeParked(id: string): Promise<string> {
+  const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
+  if (tx.status !== 'parked') throw new Error('Only parked records can be removed.');
+  await db.transactions.delete(id); return tx.plateNumber;
+}
 export const revenueDay = (t: ParkingTransaction): number | undefined => t.firstPaidAt ?? t.paidAt;
 export async function markPaid(id: string): Promise<ParkingTransaction> {
   const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');

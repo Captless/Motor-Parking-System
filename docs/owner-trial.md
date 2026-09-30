@@ -15,12 +15,14 @@
 2. **Fix a typo:** tap the plate itself on its row, correct it, press Enter.
 3. **Paid:** tap **Mark Paid** on the row when the customer pays
    (it turns green). Tap again to undo before checkout.
-4. **Checkout:** tap **Check Out** on the row → **Confirm checkout**
+4. **Wrong entry:** tap the ✕ on the row, then **Delete?** to remove an
+   accidental parking record. Paid rows must be marked unpaid first.
+5. **Checkout:** tap **Check Out** on the row → **Confirm checkout**
    in the sheet that slides up.
-5. **Search:** use the search box above the parked list to find a plate fast.
-6. **Long queues:** when the list gets long, a faint ↑ button appears
+6. **Search:** use the search box above the parked list to find a plate fast.
+7. **Long queues:** when the list gets long, a faint ↑ button appears
    near the bottom — tap it to jump back to the top.
-7. **Parking Fee:** Settings → type the new fee → Save. Old records keep
+8. **Parking Fee:** Settings → type the new fee → Save. Old records keep
    the fee they started with; only new entries use the new fee.
 
 ## 3. Understanding the numbers
