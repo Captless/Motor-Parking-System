@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { db } from '../../db/database';
 import { ToastProvider } from '../../app/toast';
 import History from './History';
@@ -25,6 +25,12 @@ describe('History actions', () => {
     expect(row.textContent).toContain('AAA 1');
     const settleRow = (await screen.findAllByText('Settle'))[0].closest('tr')!;
     expect(settleRow.textContent).toContain('CCC 3');
+  });
+  it('single tap settles immediately', async () => {
+    render(<ToastProvider><History /></ToastProvider>);
+    fireEvent.click((await screen.findAllByText('Settle'))[0]);
+    await screen.findByText(/Settled ₱20 for CCC 3/);
+    expect((await db.transactions.get('old-unpaid'))?.paymentStatus).toBe('paid');
   });
   it('separate fixed action column, date-only paid line', async () => {
     const { container } = render(<ToastProvider><History /></ToastProvider>);

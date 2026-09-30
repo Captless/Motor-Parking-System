@@ -51,7 +51,9 @@ export default function History() {
                   <td>{t.checkOutAt ? formatTime(t.checkOutAt) : '—'}</td>
                   <td className="num">{formatPeso(t.fee)}</td>
                   <td className={`st-col ${t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}`}>{t.paymentStatus === 'paid' ? (<>Paid{t.paidAt ? <span className="hist-paid-at">{formatShortDate(t.paidAt)}</span> : null}</>) : 'Unpaid'}</td>
-                  <td className="act-col">{t.paymentStatus === 'paid' ? (t.paidAt != null && isToday(t.paidAt) ? <button className="hist-undo" disabled={pendingId === t.id} onClick={() => unsettle(t)}>Undo</button> : '—') : <button className="hist-settle" disabled={pendingId === t.id} onClick={() => settle(t)}>Settle</button>}</td>
+                  <td className="act-col">{t.paymentStatus === 'paid' ? (t.paidAt != null && isToday(t.paidAt)
+                    ? <button className="hist-undo" disabled={pendingId === t.id} onClick={() => unsettle(t)} aria-label={`Mark ${t.plateNumber} unpaid`}>Undo</button>
+                    : '—') : <button className="hist-settle" disabled={pendingId === t.id} onClick={() => settle(t)} aria-label={`Settle ${t.plateNumber}`}>Settle</button>}</td>
                 </tr>))}
               </tbody>
             </table>
