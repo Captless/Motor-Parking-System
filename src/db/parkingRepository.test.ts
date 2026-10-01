@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ParkingDB } from './database';
 import * as R from './parkingRepository';
 import { db } from './database';
+import { startOfDay } from '../lib/dates';
 
 describe('parking', () => {
   beforeEach(async () => { await db.delete(); await db.open(); await db.settings.put({ id: 'main', parkingFee: 20 }); });
@@ -195,6 +196,17 @@ describe('parking', () => {
     const days = await R.getActiveDays();
     expect(days.length).toBe(2);
     expect(days[0] > days[1]).toBe(true);
+  });
+  it('paid-after-checkout never lists a day with no lot activity', async () => {
+    const now = Date.now();
+    const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'P1', plateNumber: 'P1', checkInAt: at(3, 8), checkOutAt: at(3, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(0, 9), firstPaidAt: at(0, 9) });
+    const today = startOfDay(now);
+    expect((await R.getActiveDays()).includes(today)).toBe(false);
+    expect(await R.getDayRecords(today)).toEqual([]);
+    const checkoutDay = startOfDay(at(3, 9));
+    expect((await R.getActiveDays()).includes(checkoutDay)).toBe(true);
+    expect((await R.getDayRecords(checkoutDay)).map(t => t.id)).toEqual(['P1']);
   });
   it('day drill lists only that day checkouts', async () => {
     const a = await R.create({ plateNumber: 'D1' }); await R.checkout(a.id);

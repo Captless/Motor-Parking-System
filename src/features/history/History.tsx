@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'; import { getHistory, markPaid, markUnpaid } from '../../db/parkingRepository';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
-import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatTime, formatFullDate, formatShortDate, isToday } from '../../lib/dates';
+import type { ParkingTransaction } from '../../types/parking'; import { formatPeso } from '../../lib/currency'; import { formatTime, formatFullDate, formatShortDate, isToday, startOfDay } from '../../lib/dates';
 import { groupByDay } from '../../lib/history';
 import { useToast } from '../../app/toast';
 export default function History() {
@@ -50,7 +50,7 @@ export default function History() {
                   <td>{formatTime(t.checkInAt)}</td>
                   <td>{t.checkOutAt ? formatTime(t.checkOutAt) : '—'}</td>
                   <td className="num">{formatPeso(t.fee)}</td>
-                  <td className={`st-col ${t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}`}>{t.paymentStatus === 'paid' ? (<>Paid{t.paidAt ? <span className="hist-paid-at">{formatShortDate(t.paidAt)}</span> : null}</>) : 'Unpaid'}</td>
+                  <td className={`st-col ${t.paymentStatus === 'paid' ? 'paid' : 'unpaid'}`}>{t.paymentStatus === 'paid' ? (<>Paid{t.paidAt && startOfDay(t.paidAt) !== g.day ? <span className="hist-paid-at">{formatShortDate(t.paidAt)}</span> : null}</>) : 'Unpaid'}</td>
                   <td className="act-col">{t.paymentStatus === 'paid' ? (t.paidAt != null && isToday(t.paidAt)
                     ? <button className="hist-undo" disabled={pendingId === t.id} onClick={() => unsettle(t)} aria-label={`Mark ${t.plateNumber} unpaid`}>Undo</button>
                     : '—') : <button className="hist-settle" disabled={pendingId === t.id} onClick={() => settle(t)} aria-label={`Settle ${t.plateNumber}`}>Settle</button>}</td>

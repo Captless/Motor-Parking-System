@@ -42,7 +42,7 @@ export const isLiveDay = (day: number, now = Date.now()): boolean => startOfDay(
 export const coverageLabel = (day: number): string => {
   const d = new Date(startOfDay(day));
   const mon = d.toLocaleDateString([], { month: 'short' }).toUpperCase();
-  return `Covers ${mon} ${d.getDate()}, 12:00 AM – 11:59 PM`;
+  return `Covers ${mon} ${d.getDate()}, 12:00 AM – 11:59 PM · entries and checkouts that day`;
 };
 export const activityLabel = (day: number, txs: ParkingTransaction[], now = Date.now()): string => {
   if (txs.length === 0) return 'No activity recorded';
@@ -117,6 +117,7 @@ export function dayReportTXT(day: number, txs: ParkingTransaction[], now = Date.
     ...(unpaid.length > 0 ? unpaid.map(line) : ['None — all settled.']),
     '',
     'Notes: Times are h:MM AM/PM. Still parked = bike still in lot.',
+    'Money is credited to the day it was paid. See Analytics for revenue by day.',
     `Generated ${generated} on device. ${live ? 'Ongoing snapshot — totals as of download.' : 'Final daily report.'}`,
     '',
   ].join('\n');

@@ -133,6 +133,16 @@ describe('dayReportCSV', () => {
     const same = csv.split('\n').find(l => l.startsWith('D1'))!;
     expect(same).toContain('2:32 PM'); expect(same.endsWith(',')).toBe(true);
   });
+  it('coverage states lot scope and TXT points revenue at Analytics', () => {
+    const day = new Date(2026, 8, 23, 12).getTime();
+    expect(coverageLabel(day)).toBe('Covers SEP 23, 12:00 AM – 11:59 PM · entries and checkouts that day');
+    const t = dayReportTXT(day, [
+      tx({ id: 'n', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 3600000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: day + 3600000 }),
+    ], day);
+    expect(t).toContain('entries and checkouts that day');
+    expect(t).toContain('Money is credited to the day it was paid. See Analytics for revenue by day.');
+    expect(dayReportCSV(day, [])).toContain('COVERAGE,Covers SEP 23, 12:00 AM – 11:59 PM · entries and checkouts that day');
+  });
   it('summarizeDay foots with its own rows', () => {
     const s = summarizeDay([
       tx({ id: 'a', plateNumber: 'A', fee: 20, paymentStatus: 'paid' }),

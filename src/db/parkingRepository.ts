@@ -72,8 +72,6 @@ export async function getActiveDays(): Promise<number[]> {
   for (const t of all) {
     set.add(startOfDay(t.checkInAt));
     if (t.checkOutAt != null) set.add(startOfDay(t.checkOutAt));
-    if (t.paidAt != null) set.add(startOfDay(t.paidAt));
-    if (t.firstPaidAt != null) set.add(startOfDay(t.firstPaidAt));
   }
   return [...set].sort((a, b) => b - a);
 }
