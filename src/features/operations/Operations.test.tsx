@@ -25,13 +25,16 @@ describe('Operations scroll shortcuts', () => {
     await screen.findByText(/Removed PLATE 0/);
     expect(await db.transactions.get('p0')).toBeUndefined();
   });
-  it('remove on paid entry is blocked until unpaid', async () => {
+  it('remove on paid entry deletes with same two-tap', async () => {
     await db.transactions.put({ id: 'p0', plateNumber: 'PLATE 0', checkInAt: Date.now(), fee: 20, status: 'parked', paymentStatus: 'paid', paidAt: Date.now(), firstPaidAt: Date.now() });
     render(<ToastProvider><Operations /></ToastProvider>);
     await screen.findByText('PLATE 0');
     fireEvent.click(screen.getByLabelText('Remove PLATE 0'));
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(await screen.findByText('Delete')).toBeTruthy();
     expect(await db.transactions.get('p0')).toBeTruthy();
+    fireEvent.click(screen.getByText('Delete'));
+    await screen.findByText(/Removed PLATE 0/);
+    expect(await db.transactions.get('p0')).toBeUndefined();
   });
   it('shows faint scroll-top after deep scroll, jumps to top on tap', async () => {
     render(<ToastProvider><Operations /></ToastProvider>);

@@ -26,7 +26,6 @@ export default function Operations() {
   const removeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (removeTimer.current) clearTimeout(removeTimer.current); }, []);
   const askRemove = async (t: ParkingTransaction) => {
-    if (t.paymentStatus === 'paid') { toast.err(`Mark ${t.plateNumber} unpaid first to remove.`); return; }
     if (removeId === t.id) {
       if (removeTimer.current) clearTimeout(removeTimer.current);
       setRemoveId(null);
