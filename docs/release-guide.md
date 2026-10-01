@@ -4,10 +4,14 @@
 
 ## Session Memory (keep current)
 
-- Current version: `1.0.1`
-- Live on owner's phone: `1.0.0`
-- In flight: `1.0.1` — first visible release (version plumbing, tab-bar
-  consistency, update procedure). Not yet merged/deployed.
+- Current version: `1.0.3`
+- Live on owner's phone: `1.0.1`
+- In flight: `1.0.3` — Operations delete works on paid entries,
+  daily report defaults to TXT with split PAID/UNPAID layout,
+  silent 24h-throttled app updates, Settings "Last update" line.
+  Not yet merged/deployed.
+- Shipped: `1.0.1` — visible versioning, tab-bar consistency,
+  update procedure.
 
 ## Version rules
 
@@ -44,7 +48,7 @@ Tell the owner:
 1. Close the app fully (swipe it away).
 2. Reopen with mobile data on.
 3. Settings → Data & storage → confirm the version number moved
-   (e.g. v1.0.0 → v1.0.1). If it didn't move, repeat step 1.
+   (e.g. v1.0.2 → v1.0.3). If it didn't move, repeat step 1.
 
 Same procedure lives in `docs/owner-trial.md` §8. Keep both copies
 in sync.

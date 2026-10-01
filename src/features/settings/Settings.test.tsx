@@ -53,6 +53,11 @@ describe('Settings view/edit', () => {
     expect(await screen.findByText('Daily reports')).toBeTruthy();
     expect(screen.queryByLabelText('Edit lot hours')).toBeNull();
   });
+  it('shows version with last update date below it', async () => {
+    render(<ToastProvider><Settings /></ToastProvider>);
+    expect(await screen.findByText(/Local device only · v/)).toBeTruthy();
+    expect(await screen.findByText(/^Last update: \d{2}-\d{2}-\d{2}$/)).toBeTruthy();
+  });
   it('collapses report list to 3 with show-all toggle', async () => {
     const day = (off: number) => { const d = new Date(); d.setHours(12, 0, 0, 0); return d.getTime() - off * 86400000; };
     await db.transactions.bulkAdd([0, 1, 2, 3].map(i => ({

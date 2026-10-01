@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest'; import { formatDateTime, formatDayLabel, formatFullDate, monthStart, weekStart, yearStart, addMonths, formatMonth } from './dates';
+import { describe, it, expect } from 'vitest'; import { formatDateTime, formatShortDate, formatDayLabel, formatFullDate, monthStart, weekStart, yearStart, addMonths, formatMonth } from './dates';
 describe('dates', () => {
   it('formatDateTime combines short date and time', () => {
     const ts = new Date(2026, 8, 28, 15, 4).getTime();
     const s = formatDateTime(ts);
     expect(s).toContain('Sep 28'); expect(s).toContain('3:04 PM');
+  });
+  it('formatShortDate shows date without time', () => {
+    const s = formatShortDate(new Date(2026, 8, 28, 15, 4).getTime());
+    expect(s).toContain('Sep 28'); expect(s).not.toMatch(/\d{1,2}:\d{2}/);
   });
   it('day labels stay intact', () => {
     const ts = new Date(2026, 8, 28, 12).getTime();

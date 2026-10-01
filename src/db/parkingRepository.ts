@@ -62,6 +62,10 @@ export async function getRangeSummary(from: number, to: number): Promise<RangeSu
     outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
   };
 }
+export async function getOldestDay(): Promise<number | null> {
+  const first = await db.transactions.orderBy('checkInAt').first();
+  return first ? startOfDay(first.checkInAt) : null;
+}
 export async function getActiveDays(): Promise<number[]> {
   const all = await db.transactions.toArray();
   const set = new Set<number>();
@@ -121,7 +125,7 @@ export async function getSettings(): Promise<AppSettings> {
   await ensureSeed();
   const raw = (await db.settings.get('main')) as AppSettings & { businessName?: unknown; openMin?: unknown; closeMin?: unknown };
   let dirty = false;
-  if (!Number.isInteger(raw.parkingFee)) { raw.parkingFee = 20; dirty = true; }
+  if (!Number.isInteger(raw.parkingFee)) { raw.parkingFee = 30; dirty = true; }
   if (dirty) await db.settings.put({ id: 'main', parkingFee: raw.parkingFee, lastBackupAt: raw.lastBackupAt });
   return { id: 'main', parkingFee: raw.parkingFee, lastBackupAt: raw.lastBackupAt };
 }
@@ -155,6 +159,11 @@ export async function renamePlate(id: string, newPlate: string): Promise<Parking
   if (dup && dup.id !== id) throw new Error('This motorcycle is already parked.');
   const next: ParkingTransaction = { ...tx, plateNumber: plate };
   await db.transactions.put(next); return next;
+}
+export async function removeParked(id: string): Promise<string> {
+  const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
+  if (tx.status !== 'parked') throw new Error('Only parked records can be removed.');
+  await db.transactions.delete(id); return tx.plateNumber;
 }
 export const revenueDay = (t: ParkingTransaction): number | undefined => t.firstPaidAt ?? t.paidAt;
 export async function markPaid(id: string): Promise<ParkingTransaction> {

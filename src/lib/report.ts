@@ -1,6 +1,6 @@
 import type { DayStats } from '../db/parkingRepository';
 import type { ParkingTransaction } from '../types/parking';
-import { startOfDay, formatDuration } from './dates';
+import { startOfDay, formatDuration, formatFullDate } from './dates';
 
 const q = (v: string | number): string => {
   const s = String(v);
@@ -84,23 +84,40 @@ export function dayReportHTML(day: number, txs: ParkingTransaction[], now = Date
 export function dayReportTXT(day: number, txs: ParkingTransaction[], now = Date.now()): string {
   const s = summarizeDay(txs);
   const live = isLiveDay(day, now);
-  const line = (t: ParkingTransaction): string => {
-    const span = `${hm(t.checkInAt)}→${hm(t.checkOutAt) || '———'}`;
-    const fee = `₱${t.fee}`;
+  const titleDate = `${formatFullDate(day)}, ${new Date(day).getFullYear()}`;
+  const generated = new Date(now).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const endOf = (t: ParkingTransaction): number => t.checkOutAt ?? t.paidAt ?? t.checkInAt;
+  const paid = txs.filter(t => t.paymentStatus === 'paid').sort((a, b) => endOf(a) - endOf(b));
+  const unpaid = txs.filter(t => t.paymentStatus !== 'paid').sort((a, b) => a.checkInAt - b.checkInAt);
+  const overnight = (t: ParkingTransaction): boolean => pastDay(t.checkOutAt, day) || pastDay(t.paidAt, day);
+  const line = (t: ParkingTransaction, i: number): string => {
+    const stay = t.checkOutAt
+      ? `Out ${hm(t.checkOutAt)} (${formatDuration(t.checkInAt, t.checkOutAt)})`
+      : 'Still parked';
+    const over = overnight(t) ? ' — overnight' : '';
     const st = t.paymentStatus === 'paid' ? 'Paid' : 'Unpaid';
-    return `${t.plateNumber.padEnd(12)} ${span.padEnd(19)} ${fee.padEnd(7)} ${st}`;
+    return `${i + 1}. ${t.plateNumber} — In ${hm(t.checkInAt)}, ${stay} — \u20B1${t.fee} — ${st}${over}`;
   };
+  const activity = activityLabel(day, txs, now);
   return [
-    `MOTOR PARKING — DAILY ${stamp(day)}`,
-    `Generated: ${new Date(now).toLocaleString()} (${live ? 'ongoing snapshot' : 'daily report'})`,
+    'MOTOR PARKING',
+    `Daily Report — ${titleDate}`,
     `${coverageLabel(day)}`,
-    `Activity: ${activityLabel(day, txs, now)}`,
-    `Total entries: ${s.total}  Collected: ₱${s.collected}`,
-    `Unpaid: ${s.unpaidCount} bikes · ₱${s.unpaidAmount}`,
+    `Activity: ${activity}`,
     '',
-    ...txs.map(line),
+    'MONEY',
+    `Collected: \u20B1${s.collected} (${paid.length} paid)`,
+    s.unpaidCount === 0 ? 'Unpaid: \u20B10 (all settled)' : `Unpaid: \u20B1${s.unpaidAmount} (${s.unpaidCount} bikes — collect later)`,
+    `Total entries: ${s.total}`,
     '',
-    'Times are h:MM AM/PM. Generated on-device.',
+    `PAID (${paid.length})`,
+    ...(paid.length > 0 ? paid.map(line) : ['None.']),
+    '',
+    `UNPAID — NEEDS FOLLOW-UP (${unpaid.length})`,
+    ...(unpaid.length > 0 ? unpaid.map(line) : ['None — all settled.']),
+    '',
+    'Notes: Times are h:MM AM/PM. Still parked = bike still in lot.',
+    `Generated ${generated} on device. ${live ? 'Ongoing snapshot — totals as of download.' : 'Final daily report.'}`,
     '',
   ].join('\n');
 }

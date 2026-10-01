@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getRangeSummary, type RangeSummary } from '../../db/parkingRepository';
+import { getOldestDay, getRangeSummary, type RangeSummary } from '../../db/parkingRepository';
 import { formatPeso, formatPesoCompact } from '../../lib/currency';
 import { useToday } from '../../lib/useToday';
 import { formatFullDate, monthStart, weekStart, yearStart, addMonths, formatMonth, startOfDay, isToday } from '../../lib/dates';
 
-type Preset = 'today' | 'week' | 'month' | 'year';
-const PRESET_LABEL: Record<Preset, string> = { today: 'today', week: 'this week', month: 'this month', year: 'this year' };
+type Preset = 'all' | 'today' | 'week' | 'month' | 'year';
+const PRESETS: Preset[] = ['all', 'today', 'week', 'month', 'year'];
+const PRESET_LABEL: Record<Preset, string> = { all: 'all time', today: 'today', week: 'this week', month: 'this month', year: 'this year' };
 const fmtHour = (h: number): string => { const ap = h < 12 ? 'AM' : 'PM'; const n = h % 12 === 0 ? 12 : h % 12; return `${n} ${ap}`; };
 
 export default function Analytics() {
-  const [preset, setPreset] = useState<Preset>('week');
+  const [preset, setPreset] = useState<Preset>('all');
   const todayTick = useToday();
   const [sum, setSum] = useState<RangeSummary | null>(null);
   const [monthCursor, setMonthCursor] = useState(() => monthStart(Date.now()));
@@ -17,12 +18,20 @@ export default function Analytics() {
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    const now = Date.now();
-    const [from, to] = preset === 'today' ? [now, now]
-      : preset === 'week' ? [weekStart(now), now]
-      : preset === 'month' ? [monthStart(now), now]
-      : [yearStart(now), now];
-    getRangeSummary(from, to).then(setSum).catch(e => setErr(String(e.message ?? e)));
+    let live = true;
+    (async () => {
+      try {
+        const now = Date.now();
+        const from = preset === 'all' ? ((await getOldestDay()) ?? now)
+          : preset === 'today' ? now
+          : preset === 'week' ? weekStart(now)
+          : preset === 'month' ? monthStart(now)
+          : yearStart(now);
+        const s = await getRangeSummary(from, now);
+        if (live) setSum(s);
+      } catch (e: any) { if (live) setErr(String(e.message ?? e)); }
+    })();
+    return () => { live = false; };
   }, [preset, todayTick]);
 
   useEffect(() => {
@@ -57,10 +66,10 @@ export default function Analytics() {
       <div><h1 className="text-xl font-bold">Analytics</h1>
         <p className="hist-sub">{formatFullDate(Date.now())}</p></div>
       <div className="hist-filter" role="group" aria-label="Range">
-        {(['today', 'week', 'month', 'year'] as const).map(p => (
+        {PRESETS.map(p => (
           <button key={p} onClick={() => setPreset(p)} aria-pressed={preset === p}
             className={`hist-chip${preset === p ? ' active' : ''}`}>
-            {p === 'today' ? 'Today' : p === 'week' ? 'This week' : p === 'month' ? 'This month' : 'This year'}
+            {p === 'all' ? 'All time' : p === 'today' ? 'Today' : p === 'week' ? 'This week' : p === 'month' ? 'This month' : 'This year'}
           </button>))}
       </div>
       {sum ? (

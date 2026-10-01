@@ -15,12 +15,14 @@
 2. **Fix a typo:** tap the plate itself on its row, correct it, press Enter.
 3. **Paid:** tap **Mark Paid** on the row when the customer pays
    (it turns green). Tap again to undo before checkout.
-4. **Checkout:** tap **Check Out** on the row → **Confirm checkout**
+4. **Wrong entry:** tap the ✕ on the row, then **Delete?** to remove an
+   accidental parking record. Paid rows must be marked unpaid first.
+5. **Checkout:** tap **Check Out** on the row → **Confirm checkout**
    in the sheet that slides up.
-5. **Search:** use the search box above the parked list to find a plate fast.
-6. **Long queues:** when the list gets long, a faint ↑ button appears
+6. **Search:** use the search box above the parked list to find a plate fast.
+7. **Long queues:** when the list gets long, a faint ↑ button appears
    near the bottom — tap it to jump back to the top.
-7. **Parking Fee:** Settings → type the new fee → Save. Old records keep
+8. **Parking Fee:** Settings → type the new fee → Save. Old records keep
    the fee they started with; only new entries use the new fee.
 
 ## 3. Understanding the numbers
@@ -43,8 +45,10 @@
 
 ## 5. Analytics
 
-- Tabs: **Today / This week / This month / This year.**
-  This week means Monday–Sunday of the current week.
+- Tabs: **All time (first, shown by default) / Today / This week /
+  This month / This year.** This week means Monday–Sunday of the
+  current week. The cards follow the selected tab; the month
+  calendar below always shows the current month.
 - Cards: revenue · entries · peak hour · unpaid.
 - The month calendar shows each day's revenue and entries.
   ★ marks the best day, ● marks days with unsettled payments.
@@ -82,7 +86,7 @@
   1. Close the app fully (swipe it away, don't just switch away).
   2. Reopen it with mobile data on.
   3. Settings → Data & storage → check the version number moved
-     (e.g. v1.0.0 → v1.0.1). If it didn't move, repeat step 1.
+     (e.g. v1.0.2 → v1.0.3). If it didn't move, repeat step 1.
 - If a red message appears, it goes away on its own after a few
   seconds (or tap it to dismiss early).
 - If the app ever shows an error card, tap Reload. If a problem

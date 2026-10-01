@@ -27,6 +27,10 @@ describe('parking', () => {
     await expect(R.checkout(t.id)).rejects.toThrow();
   });
   it('fee snapshot survives setting change', async () => { const t = await R.create({ plateNumber: 'C3' }); await R.updateSettings({ parkingFee: 25 }); expect((await R.getById(t.id))?.fee).toBe(20); });
+  it('fresh install defaults fee to 30', async () => {
+    await db.settings.clear();
+    expect((await R.getSettings()).parkingFee).toBe(30);
+  });
   it('settings default fee and ignore legacy lot-hours backup', async () => {
     const s = await R.getSettings();
     expect(s.parkingFee).toBe(20);
@@ -48,6 +52,15 @@ describe('parking', () => {
     await expect(R.renamePlate(a.id, '   ')).rejects.toThrow();
     await R.checkout(a.id);
     await expect(R.renamePlate(a.id, 'CCC 3')).rejects.toThrow();
+  });
+  it('removeParked deletes parked, rejects completed and missing', async () => {
+    const t = await R.create({ plateNumber: 'DEL 1' });
+    expect(await R.removeParked(t.id)).toBe('DEL 1');
+    expect(await R.getById(t.id)).toBeUndefined();
+    expect((await R.getActive()).length).toBe(0);
+    await expect(R.removeParked(t.id)).rejects.toThrow('Record not found');
+    const c = await R.create({ plateNumber: 'DEL 2' }); await R.checkout(c.id);
+    await expect(R.removeParked(c.id)).rejects.toThrow('Only parked records');
   });
   it('backup v2 roundtrip, v1 legacy migrates, reject bad', async () => {
     await R.create({ plateNumber: 'D4' }); const b = await R.exportBackup(); expect(b.version).toBe(2);

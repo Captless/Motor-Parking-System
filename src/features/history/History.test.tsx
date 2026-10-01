@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { db } from '../../db/database';
 import { ToastProvider } from '../../app/toast';
 import History from './History';
@@ -25,5 +25,26 @@ describe('History actions', () => {
     expect(row.textContent).toContain('AAA 1');
     const settleRow = (await screen.findAllByText('Settle'))[0].closest('tr')!;
     expect(settleRow.textContent).toContain('CCC 3');
+  });
+  it('single tap settles immediately', async () => {
+    render(<ToastProvider><History /></ToastProvider>);
+    fireEvent.click((await screen.findAllByText('Settle'))[0]);
+    await screen.findByText(/Settled ₱20 for CCC 3/);
+    expect((await db.transactions.get('old-unpaid'))?.paymentStatus).toBe('paid');
+  });
+  it('separate fixed action column, date-only paid line', async () => {
+    const { container } = render(<ToastProvider><History /></ToastProvider>);
+    await screen.findByText('Settle');
+    expect(container.querySelectorAll('table')[0].querySelectorAll('thead th').length).toBe(6);
+    expect(screen.getAllByText('Action').length).toBeGreaterThan(0);
+    const paidAt = container.querySelector('.hist-paid-at')?.textContent ?? '';
+    expect(paidAt).toMatch(/[A-Z][a-z]{2} \d{1,2}/);
+    expect(paidAt).not.toMatch(/\d{1,2}:\d{2}/);
+    const actions = [...container.querySelectorAll('td.act-col')];
+    expect(actions.length).toBe(3);
+    expect(container.querySelectorAll('th.st-col').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('td.st-col').length).toBe(3);
+    const unpaid = actions.find(c => c.closest('tr')?.textContent?.includes('CCC 3'));
+    expect(unpaid?.querySelector('button')?.textContent).toBe('Settle');
   });
 });
