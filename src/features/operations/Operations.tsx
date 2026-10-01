@@ -183,7 +183,7 @@ export default function Operations() {
       </section>
 
     </div>
-      {showTop && list.length > 20 && (
+      {showTop && (
         <button className="back-top" onClick={goTop} aria-label="Scroll to top">↑</button>
       )}
       {sel && (

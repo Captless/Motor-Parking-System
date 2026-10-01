@@ -46,4 +46,15 @@ describe('Operations scroll shortcuts', () => {
     fireEvent.click(screen.getByLabelText('Scroll to top'));
     expect(window.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
   });
+  it('shows scroll-top on a short list with no count gate', async () => {
+    await db.transactions.clear();
+    await db.transactions.bulkAdd([
+      { id: 's1', plateNumber: 'SOLO 1', checkInAt: Date.now(), fee: 20, status: 'parked' as const, paymentStatus: 'unpaid' as const },
+    ]);
+    render(<ToastProvider><Operations /></ToastProvider>);
+    await screen.findByText('SOLO 1');
+    Object.defineProperty(window, 'scrollY', { value: 800, writable: true, configurable: true });
+    fireEvent.scroll(window);
+    expect(await screen.findByLabelText('Scroll to top')).toBeTruthy();
+  });
 });
