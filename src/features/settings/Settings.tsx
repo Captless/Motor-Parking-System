@@ -10,7 +10,7 @@ export default function Settings() {
   const [fee, setFee] = useState(''); const [confirmClear, setConfirmClear] = useState(false);
   const [counts, setCounts] = useState(''); const [storage, setStorage] = useState(''); const [persisted, setPersisted] = useState<boolean | null>(null);
   const [days, setDays] = useState<{ day: number; rows: ParkingTransaction[] }[]>([]);
-  const [format, setFormat] = useState<ReportFormat>('csv');
+  const [format, setFormat] = useState<ReportFormat>('txt');
   const [showAll, setShowAll] = useState(false);
   const [lastBackup, setLastBackup] = useState<number | null>(null);
   const backupStale = (ts: number | null): boolean => {

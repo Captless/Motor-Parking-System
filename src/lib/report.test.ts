@@ -43,7 +43,7 @@ describe('dayReportCSV', () => {
     expect(pastHTML).toContain('Daily report');
     expect(pastHTML).not.toContain('Ongoing snapshot');
     const pastTXT = dayReportTXT(new Date(2026, 8, 22, 12).getTime(), rows, day);
-    expect(pastTXT).toContain('(daily report)');
+    expect(pastTXT).toContain('Final daily report');
     expect(pastTXT).toContain('Covers ');
     expect(pastTXT).toContain('Activity: ');
   });
@@ -91,14 +91,32 @@ describe('dayReportCSV', () => {
     expect(h).toContain('total entries'); expect(h).toContain('unpaid');
     expect(h).toContain('class="unpaidrow"');
   });
-  it('TXT mirrors summary + aligned rows', () => {
+  it('TXT splits paid/unpaid with plain summary + durations', () => {
     const day = new Date(2026, 8, 23, 12).getTime();
     const t = dayReportTXT(day, [
       tx({ id: 'n', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 3600000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: day + 3600000 }),
+      tx({ id: 'u', plateNumber: 'XYZ 2', checkInAt: day, checkOutAt: undefined, fee: 20, status: 'parked', paymentStatus: 'unpaid', paidAt: undefined }),
+    ], day);
+    expect(t).toContain('MOTOR PARKING');
+    expect(t).toContain('Daily Report —');
+    expect(t).toContain('MONEY');
+    expect(t).toContain('Total entries: 2'); expect(t).toContain('Collected: ₱20 (1 paid)'); expect(t).toContain('Unpaid: ₱20 (1 bikes');
+    expect(t).toContain('PAID (1)'); expect(t).toContain('UNPAID — NEEDS FOLLOW-UP (1)');
+    expect(t).toContain('1. ABC 1 — In 12:00 PM, Out 1:00 PM (1h 0m)');
+    expect(t).toContain('1. XYZ 2 — In 12:00 PM, Still parked');
+    expect(t).toContain('Ongoing snapshot');
+  });
+  it('TXT handles all-settled and empty days', () => {
+    const day = new Date(2026, 8, 23, 12).getTime();
+    const settled = dayReportTXT(day, [
+      tx({ id: 'n', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 3600000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: day + 3600000 }),
     ]);
-    expect(t).toContain('MOTOR PARKING — DAILY 2026-09-23');
-    expect(t).toContain('Total entries: 1'); expect(t).toContain('Collected: ₱20'); expect(t).toContain('Unpaid: 0');
-    expect(t).toContain('ABC 1'); expect(t).toContain('Paid');
+    expect(settled).toContain('Unpaid: ₱0 (all settled)');
+    expect(settled).toContain('None — all settled.');
+    const empty = dayReportTXT(day, [], day);
+    expect(empty).toContain('Total entries: 0');
+    expect(empty).toContain('No activity recorded');
+    expect(empty).toContain('PAID (0)');
   });
   it('times read AM/PM and overnight rows are flagged', () => {
     const day = new Date(2026, 8, 23, 12).getTime();
