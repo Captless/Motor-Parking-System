@@ -116,7 +116,7 @@ export function dayReportTXT(day: number, txs: ParkingTransaction[], now = Date.
     ...(unpaid.length > 0 ? unpaid.map(line) : ['None — all settled.']),
     '',
     'Notes: Times are h:MM AM/PM. Still parked = bike still in lot.',
-    'Money is credited to the day it was paid. See Analytics for revenue by day.',
+    'Money is credited to the day it was paid. See Overview for revenue by day.',
     `Generated ${generated} on device. ${live ? 'Ongoing snapshot — totals as of download.' : 'Final daily report.'}`,
     '',
   ].join('\n');

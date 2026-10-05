@@ -13,7 +13,7 @@ export interface BusinessSummary { revenue: number; motorcycles: number; activeD
 
 export interface DayTotal { revenue: number; bikes: number; }
 export interface WeekTotal { revenue: number; bikes: number; avgTicket: number; }
-export interface Debtor { plate: string; days: number; amount: string; repeat: boolean; }
+export interface Debtor { id: string; plate: string; days: number; amount: string; repeat: boolean; }
 
 export interface BusinessSnapshot {
   now: number;
@@ -140,19 +140,20 @@ export function buildBusinessSnapshot(input: { txs: readonly ParkingTransaction[
   {
     let oldest: number | null = null;
     const lifetime = new Map<string, number>();
-    const open: { plate: string; entry: number; fee: number }[] = [];
+    const open: { id: string; plate: string; entry: number; fee: number }[] = [];
     for (const tx of input.txs) {
       if (tx.paymentStatus === 'paid' || !Number.isFinite(tx.fee)) continue;
       lifetime.set(normalizePlate(tx.plateNumber), (lifetime.get(normalizePlate(tx.plateNumber)) ?? 0) + 1);
       const entry = dayOf(tx.checkInAt);
       if (entry == null) continue;
       if (oldest == null || entry < oldest) oldest = entry;
-      open.push({ plate: tx.plateNumber, entry, fee: tx.fee });
+      open.push({ id: tx.id, plate: tx.plateNumber, entry, fee: tx.fee });
     }
     if (oldest != null) oldestDays = eachDay(oldest, today).length - 1;
     open.sort((a, b) => a.entry - b.entry);
     for (const o of open.slice(0, 3)) {
       debtors.push({
+        id: o.id,
         plate: o.plate,
         days: eachDay(o.entry, today).length - 1,
         amount: formatPeso(o.fee),

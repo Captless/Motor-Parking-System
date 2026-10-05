@@ -57,4 +57,24 @@ describe('Operations scroll shortcuts', () => {
     fireEvent.scroll(window);
     expect(await screen.findByLabelText('Scroll to top')).toBeTruthy();
   });
+  it('header Unpaid is global outstanding, unaffected by search', async () => {
+    const d = new Date(); d.setHours(8, 10, 0, 0);
+    await db.transactions.add({ id: 'done-unpaid', plateNumber: 'DONE 1', checkInAt: d.getTime(), checkOutAt: d.getTime(), fee: 30, status: 'completed', paymentStatus: 'unpaid' });
+    render(<ToastProvider><Operations /></ToastProvider>);
+    // 25 parked × ₱20 plus the completed-unpaid ₱30.
+    expect(await screen.findByText('₱530')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Search parked plates'), { target: { value: 'DONE' } });
+    expect(await screen.findByText('₱530')).toBeTruthy();
+  });
+  it('Collected sub-line states today-only vs overnight holds', async () => {
+    render(<ToastProvider><Operations /></ToastProvider>);
+    await screen.findByText('PLATE 0');
+    expect(await screen.findByText('today only')).toBeTruthy();
+  });
+  it('Collected sub-line names overnight holds', async () => {
+    const y = new Date(); y.setDate(y.getDate() - 1); y.setHours(9, 10, 0, 0);
+    await db.transactions.add({ id: 'held', plateNumber: 'HELD 1', checkInAt: y.getTime(), fee: 20, status: 'parked', paymentStatus: 'paid', paidAt: y.getTime(), firstPaidAt: y.getTime() });
+    render(<ToastProvider><Operations /></ToastProvider>);
+    expect(await screen.findByText('incl. ₱20 overnight')).toBeTruthy();
+  });
 });

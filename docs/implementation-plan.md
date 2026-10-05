@@ -431,7 +431,7 @@ The Operations screen shows `collectedToday + collectedHeld`, where
 revenue day (`firstPaidAt ?? paidAt`) is before today. Overnight holds
 stay visible across midnight; checked-out bikes leave the gauge.
 Daily revenue reporting (Analytics, History, downloaded reports) always
-uses the same revenue-day rule above and is unaffected. Analytics buckets
+uses the same revenue-day rule above and is unaffected. Overview buckets
 revenue by that revenue day, while its **bikes** count is bucketed
 by `checkOutAt`.
 

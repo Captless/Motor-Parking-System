@@ -29,7 +29,7 @@ describe('Analytics failure handling', () => {
 
     expect(await within(c).findByText('Local database is unavailable.')).toBeTruthy();
     // The owner keeps context and a way out instead of a dead screen.
-    expect(within(c).getByText('Analytics')).toBeTruthy();
+    expect(within(c).getByText('Overview')).toBeTruthy();
     const retry = within(c).getByRole('button', { name: 'Try again' });
     expect(retry).toBeTruthy();
 

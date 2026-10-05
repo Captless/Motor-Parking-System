@@ -31,7 +31,7 @@ export default function Analytics() {
   if (err) return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-xl font-bold">Analytics</h1>
+        <h1 className="text-xl font-bold">Overview</h1>
         <p className="hist-sub">{formatFullDate(Date.now())} · business overview</p>
       </header>
       <p className="counter-error">{err}</p>
@@ -42,7 +42,7 @@ export default function Analytics() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-xl font-bold">Analytics</h1>
+        <h1 className="text-xl font-bold">Overview</h1>
         <p className="hist-sub">{formatFullDate(Date.now())} · business overview</p>
       </header>
 
@@ -58,7 +58,7 @@ export default function Analytics() {
                 {snap.todayDelta ? <p className={toneClass(snap.todayTone)}>{snap.todayDelta}</p> : <p className="kpi-delta none">no activity yet</p>}
               </div>
               <div className="kpi">
-                <p className="kpi-label">Bikes today</p>
+                <p className="kpi-label">Bikes served today</p>
                 <p className="kpi-val">{count(snap.today.bikes)}</p>
                 <p className="kpi-delta none">{count(snap.parkedNow)} parked now</p>
               </div>
@@ -70,7 +70,7 @@ export default function Analytics() {
             <div className="ov-card">
               <div className="ov-row"><span>Week so far</span><strong>{formatPeso(snap.week.revenue)}</strong></div>
               {snap.weekDelta && <div className="ov-row"><span>vs last week</span><span className={toneClass(snap.weekTone)}>{snap.weekDelta}</span></div>}
-              <div className="ov-row"><span>Bikes</span><span>{count(snap.week.bikes)} · avg {formatPeso(snap.week.avgTicket)}/bike</span></div>
+              <div className="ov-row"><span>Bikes served</span><span>{count(snap.week.bikes)} · avg {formatPeso(snap.week.avgTicket)}/bike</span></div>
             </div>
           </section>
 
@@ -88,7 +88,7 @@ export default function Analytics() {
               {snap.unpaid.debtors.length > 0 && (
                 <div className="ov-debtors">
                   {snap.unpaid.debtors.map(d => (
-                    <Link key={`${d.plate}-${d.days}`} className="ov-debtor"
+                    <Link key={d.id} className="ov-debtor"
                       to={`/history?payment=unpaid&q=${encodeURIComponent(d.plate)}`}
                       aria-label={`${d.plate}, ${d.days} days owed, ${d.amount}`}>
                       <span className="ov-debtor-plate">{d.plate}</span>

@@ -190,6 +190,16 @@ describe('overview snapshot', () => {
     expect(s.unpaid.debtors[1]).toMatchObject({ plate: 'CCC 3', days: 5, repeat: false });
     expect(s.unpaid.debtors[2]).toMatchObject({ plate: 'BBB 2', days: 3, repeat: false });
   });
+  it('keeps same-plate same-day debts as distinct rows', () => {
+    const s = buildBusinessSnapshot({
+      txs: [
+        tx({ id: 'e1', plateNumber: 'SAME 1', checkInAt: at(NOW, -2, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' }),
+        tx({ id: 'e2', plateNumber: 'SAME 1', checkInAt: at(NOW, -2, 9), fee: 20, status: 'parked', paymentStatus: 'unpaid' }),
+      ],
+      now: NOW,
+    });
+    expect(s.unpaid.debtors.map(d => d.id).sort()).toEqual(['e1', 'e2']);
+  });
   it('scopes unpaid to the whole lot with the oldest age in days', () => {
     const s = buildBusinessSnapshot({
       txs: [

@@ -28,10 +28,12 @@
 ## 3. Understanding the numbers
 
 - **Operations header:** Parked (bikes on the lot) · Collected · Unpaid.
+  The Collected line always says whether it is "today only" or includes
+  overnight holds, and Unpaid here means the same total as Overview.
 - **Collected = today's takings plus overnight holds still parked.**
   If paid bikes stay overnight, they stay in Collected past midnight
   (shown as "incl. ₱X overnight"). Bikes that already checked out
-  leave this number — their money is counted in Analytics and reports.
+  leave this number — their money is counted in Overview and reports.
 - **A day runs 12:00 AM – 11:59 PM** (phone time). Every daily report
   prints this window at the top, so there is no guessing.
 
@@ -47,7 +49,7 @@
 
 ## 5. Business Overview
 
-- Tap **Analytics** in the tab bar.
+- Tap **Overview** in the tab bar.
 - **Today:** what you collected today vs yesterday, bikes served, and
   how many are parked right now.
 - **This week:** the week so far vs last week, bikes, and average

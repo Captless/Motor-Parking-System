@@ -3,4 +3,4 @@ export type PaymentStatus = 'unpaid' | 'paid';
 export interface ParkingTransaction { id: string; plateNumber: string; checkInAt: number; checkOutAt?: number; fee: number; status: ParkingStatus; paymentStatus: PaymentStatus; paidAt?: number; firstPaidAt?: number; }
 export interface AppSettings { id: 'main'; parkingFee: number; lastBackupAt?: number; }
 export interface BackupFile { version: 2; exportedAt: number; settings: { parkingFee: number }; transactions: ParkingTransaction[]; }
-export interface DailyStats { parked: number; entriesToday: number; completedToday: number; collectedToday: number; collectedHeld: number; }
+export interface DailyStats { parked: number; entriesToday: number; completedToday: number; collectedToday: number; collectedHeld: number; outstanding: number; }

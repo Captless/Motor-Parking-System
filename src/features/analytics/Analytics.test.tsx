@@ -40,7 +40,7 @@ describe('Analytics overview', () => {
     const hero = within(c).getByText('Collected today').parentElement as HTMLElement;
     expect(within(hero).getByText(peso(60))).toBeTruthy();
     expect(within(hero).getByText('+₱20 vs yesterday')).toBeTruthy();
-    expect(within(c).getByText('Bikes today')).toBeTruthy();
+    expect(within(c).getByText('Bikes served today')).toBeTruthy();
     expect(within(c).getByText('0 parked now')).toBeTruthy();
   });
 
