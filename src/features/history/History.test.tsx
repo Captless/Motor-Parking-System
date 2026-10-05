@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { db } from '../../db/database';
 import { ToastProvider } from '../../app/toast';
 import History from './History';
+
+const show = (entry = '/history') => render(
+  <MemoryRouter initialEntries={[entry]}><ToastProvider><History /></ToastProvider></MemoryRouter>,
+);
 
 const at = (dayOff: number, h: number) => { const d = new Date(Date.now() - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
 
@@ -18,7 +23,7 @@ describe('History actions', () => {
     ]);
   });
   it('Undo only on today-paid, Settle on unpaid, dash on old-paid', async () => {
-    render(<ToastProvider><History /></ToastProvider>);
+    show();
     const undos = await screen.findAllByText('Undo');
     expect(undos.length).toBe(1);
     expect((await screen.findAllByText('Settle')).length).toBe(1);
@@ -28,13 +33,13 @@ describe('History actions', () => {
     expect(settleRow.textContent).toContain('CCC 3');
   });
   it('single tap settles immediately', async () => {
-    render(<ToastProvider><History /></ToastProvider>);
+    show();
     fireEvent.click((await screen.findAllByText('Settle'))[0]);
     await screen.findByText(/Settled ₱20 for CCC 3/);
     expect((await db.transactions.get('old-unpaid'))?.paymentStatus).toBe('paid');
   });
   it('separate fixed action column, date-only paid line', async () => {
-    const { container } = render(<ToastProvider><History /></ToastProvider>);
+    const { container } = show();
     await screen.findByText('Settle');
     expect(container.querySelectorAll('table')[0].querySelectorAll('thead th').length).toBe(6);
     expect(screen.getAllByText('Action').length).toBeGreaterThan(0);
@@ -49,7 +54,7 @@ describe('History actions', () => {
     expect(unpaid?.querySelector('button')?.textContent).toBe('Settle');
   });
   it('paid date shows only when the payment day differs from the batch day', async () => {
-    const { container } = render(<ToastProvider><History /></ToastProvider>);
+    const { container } = show();
     await screen.findByText('Settle');
     const rowFor = (plate: string) => [...container.querySelectorAll('tbody tr')].find(r => r.textContent?.includes(plate));
     expect(rowFor('AAA 1')?.querySelector('.hist-paid-at')).toBeNull();
@@ -61,5 +66,41 @@ describe('History actions', () => {
     expect(paidAt).not.toMatch(/\d{1,2}:\d{2}/);
     expect(container.querySelectorAll('.hist-paid-at').length).toBe(1);
     expect(paidAt).toBe(new Date(at(1, 9)).toLocaleDateString([], { month: 'short', day: 'numeric' }));
+  });
+  it('presets the unpaid filter from ?payment=unpaid', async () => {
+    const { container } = show('/history?payment=unpaid');
+    const group = await screen.findByRole('group', { name: 'Payment filter' });
+    expect(within(group).getByRole('button', { name: 'Unpaid' }).getAttribute('aria-pressed')).toBe('true');
+    await screen.findByText('Settle');
+    expect(container.textContent).toContain('CCC 3');
+    expect(container.textContent).not.toContain('AAA 1');
+  });
+  it('presets the search box from ?q=', async () => {
+    const { container } = show('/history?payment=unpaid&q=CCC');
+    await screen.findByText('Settle');
+    expect((screen.getByPlaceholderText('Search plate…') as HTMLInputElement).value).toBe('CCC');
+    expect(container.textContent).toContain('CCC 3');
+    expect(container.textContent).not.toContain('AAA 1');
+  });
+  it('shows parked debtors under Unpaid with a Parked marker and working Settle', async () => {
+    await db.transactions.add({ id: 'pk1', plateNumber: 'PK 1', checkInAt: at(0, 7), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    const { container } = show('/history?payment=unpaid');
+    const row = await screen.findByText('PK 1');
+    const tr = row.closest('tr')!;
+    expect(tr.textContent).toContain('Parked');
+    expect(tr.querySelector('.hist-parked')).toBeTruthy();
+    expect(tr.querySelector('button')?.textContent).toBe('Settle');
+    expect(container.textContent).toContain('Due ₱40');
+    expect(container.textContent).toContain('Total (2) · Due ₱40');
+  });
+  it('shows Due instead of ₱0 collected under the unpaid filter', async () => {
+    const { container } = show();
+    await screen.findByText('Settle');
+    const group = within(container).getByRole('group', { name: 'Payment filter' });
+    fireEvent.click(within(group).getByRole('button', { name: 'Unpaid' }));
+    await waitFor(() => expect(container.textContent).toContain('1 records · Due ₱20'));
+    expect(container.querySelector('.hist-due')).toBeTruthy();
+    fireEvent.click(within(group).getByRole('button', { name: 'Paid' }));
+    await waitFor(() => expect(container.textContent).toContain('3 records · ₱60 collected'));
   });
 });

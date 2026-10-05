@@ -42,16 +42,23 @@
   tap **Settle**. Same-day payments can be undone with **Undo**.
 - History groups everything by day with paid times and totals.
   Use the search box and the All / Paid / Unpaid filter to find records.
+  The Unpaid filter also shows still-parked bikes (marked Parked) and
+  totals them as Due instead of collected.
 
-## 5. Analytics
+## 5. Business Overview
 
-- Tabs: **All time (first, shown by default) / Today / This week /
-  This month / This year.** This week means Monday–Sunday of the
-  current week. The cards follow the selected tab; the month
-  calendar below always shows the current month.
-- Cards: revenue · entries · peak hour · unpaid.
-- The month calendar shows each day's revenue and entries.
-  ★ marks the best day, ● marks days with unsettled payments.
+- Tap **Analytics** in the tab bar.
+- **Today:** what you collected today vs yesterday, bikes served, and
+  how many are parked right now.
+- **This week:** the week so far vs last week, bikes, and average
+  pesos per bike.
+- **Unpaid:** what you are still owed, how many records, and the oldest
+  debt in days. The oldest debtors are listed with plate, days owed,
+  and amount — ⚠ repeat flags plates with 2+ unpaid records. Tapping
+  a row jumps to History with that debtor ready to settle. **See all**
+  beside the amount jumps to History with the unpaid filter on.
+- Footnote: revenue counts settled payments on the day they were paid.
+  Unpaid is never revenue.
 
 ## 6. Reports (2 minutes at end of day)
 

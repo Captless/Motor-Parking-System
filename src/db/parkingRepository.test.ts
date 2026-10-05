@@ -72,63 +72,66 @@ describe('parking', () => {
     await expect(R.importBackup({ bad: 1 })).rejects.toThrow();
     await expect(R.importBackup({ ...b, version: 99 })).rejects.toThrow();
   });
-  it('week stats bucket paid-only revenue, zero-fill empty days', async () => {
+  it('business overview buckets paid-only revenue into today with a 7-day ledger', async () => {
     const a = await R.create({ plateNumber: 'W1' }); await R.markPaid(a.id); await R.checkout(a.id);
-    const w = await R.getWeekStats();
-    expect(w.length).toBe(7);
-    expect(w[6].collected).toBe(20); expect(w[6].entries).toBe(1); expect(w[6].completed).toBe(1);
-    expect(w.slice(0, 6).every(d => d.collected === 0 && d.entries === 0)).toBe(true);
-    const tot = w.reduce((s, d) => s + d.collected, 0);
-    expect(tot).toBe((await R.getDailyStats()).collectedToday);
+    const now = Date.now();
+    const s = await R.getBusinessOverview(now);
+    expect(s.today.revenue).toBe(20);
+    expect(s.today.bikes).toBe(1);
+    expect(s.today.revenue).toBe((await R.getDailyStats(now)).collectedToday);
+    expect(s.week.revenue).toBe(20);
   });
-  it('range analytics: WoW deltas, peak hour, outstanding', async () => {
+  it('business overview: today vs yesterday, week vs last week, global outstanding', async () => {
     const now = Date.now();
     const mk = (plate: string, inAt: number, outAt: number | undefined, fee: number, pay: boolean, parked = false) =>
-      db.transactions.add({ id: plate, plateNumber: plate, checkInAt: inAt, checkOutAt: outAt, fee, status: parked ? 'parked' : 'completed', paymentStatus: pay ? 'paid' : 'unpaid', paidAt: pay && outAt ? outAt : undefined });
+      db.transactions.add({ id: plate, plateNumber: plate, checkInAt: inAt, checkOutAt: outAt, fee, status: parked ? 'parked' : 'completed', paymentStatus: pay ? 'paid' : 'unpaid', paidAt: pay && outAt ? outAt : undefined, firstPaidAt: pay && outAt ? outAt : undefined });
     const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
     await mk('C1', at(0, 8), at(0, 10), 20, true);
     await mk('C2', at(0, 8), at(0, 11), 30, true);
     await mk('C3', at(0, 9), at(0, 12), 20, false);
     await mk('P1', at(8, 8), at(8, 10), 20, true);
-    await mk('O1', now - 3600000, undefined, 20, false, true);
-    const r = await R.getRangeAnalytics(now);
-    expect(r.totalCollected).toBe(50);
-    expect(r.prevCollected).toBe(20);
-    expect(r.revenueDeltaPct).toBe(150);
-    expect(r.entriesDeltaPct).toBe(300);
-    expect(r.prevDailyAvg).toBe(Math.round(20 / 7));
-    expect(r.peakHour).toEqual({ hour: 8, count: 2 });
-    expect(r.outstanding).toEqual({ count: 2, amount: 40 });
+    await mk('O1', at(0, 6), undefined, 20, false, true);
+    const r = await R.getBusinessOverview(now);
+    // Today settles 50 against nothing yesterday; the 8-day-old settle lands in the prior week.
+    expect(r.today).toEqual({ revenue: 50, bikes: 3 });
+    expect(r.week.revenue).toBe(50);
+    expect(r.parkedNow).toBe(1);
+    // Outstanding stays global: the still-parked record plus the completed unpaid one.
+    expect(r.unpaid.count).toBe(2);
+    expect(r.unpaid.amount).toBe('₱40');
+    expect(r.unpaid.oldestDays).toBe(0);
+    expect(r.hasRecords).toBe(true);
+    expect(r.invalidRecords).toBe(0);
   });
-  it('day buckets + range summary scope to range', async () => {
+  it('business overview empty lot is safe and reports no comparison', async () => {
+    const r = await R.getBusinessOverview();
+    expect(r.today).toEqual({ revenue: 0, bikes: 0 });
+    expect(r.todayDelta).toBeNull();
+    expect(r.weekDelta).toBeNull();
+    expect(r.unpaid).toEqual({ amount: '₱0', count: 0, oldestDays: null, debtors: [] });
+    expect(r.hasRecords).toBe(false);
+  });
+  it('unpaid history includes still-parked bikes, other views do not', async () => {
     const now = Date.now();
     const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
-    await db.transactions.add({ id: 'B1', plateNumber: 'B1', checkInAt: at(1, 8), checkOutAt: at(1, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 9) });
-    await db.transactions.add({ id: 'B2', plateNumber: 'B2', checkInAt: at(9, 8), checkOutAt: at(9, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(9, 9) });
-    const buckets = await R.getDayBuckets(now - 2 * 86400000, now);
-    expect(buckets.length).toBe(3);
-    expect(buckets[1].collected).toBe(20); expect(buckets[0].collected).toBe(0); expect(buckets[2].collected).toBe(0);
-    const s = await R.getRangeSummary(now - 2 * 86400000, now);
-    expect(s.totalCollected).toBe(20); expect(s.totalEntries).toBe(1);
-    expect(s.peakHour).toEqual({ hour: 8, count: 1 });
-    expect(s.outstanding).toEqual({ count: 0, amount: 0 });
-    const old = await R.getRangeSummary(now - 10 * 86400000, now - 8 * 86400000);
-    expect(old.totalCollected).toBe(20); expect(old.totalEntries).toBe(1);
+    await db.transactions.add({ id: 'PK1', plateNumber: 'PK1', checkInAt: at(0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    await db.transactions.add({ id: 'CP1', plateNumber: 'CP1', checkInAt: at(1, 8), checkOutAt: at(1, 9), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 9), firstPaidAt: at(1, 9) });
+    expect((await R.getHistory('', 'unpaid')).map(t => t.id)).toContain('PK1');
+    expect((await R.getHistory('', 'all')).map(t => t.id)).not.toContain('PK1');
+    expect((await R.getHistory('', 'paid')).map(t => t.id)).not.toContain('PK1');
   });
-  it('range analytics empty-safe with null deltas', async () => {
-    const r = await R.getRangeAnalytics();
-    expect(r.totalCollected).toBe(0); expect(r.revenueDeltaPct).toBeNull(); expect(r.entriesDeltaPct).toBeNull();
-    expect(r.peakHour).toBeNull(); expect(r.outstanding).toEqual({ count: 0, amount: 0 });
-  });
-  it('buckets count completed-unpaid per checkout day only', async () => {
+  it('business overview counts completed-unpaid on its checkout day without revenue', async () => {
     const now = Date.now();
     const at = (dayOff: number, h: number) => { const d = new Date(now - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
     await db.transactions.add({ id: 'U1', plateNumber: 'U1', checkInAt: at(1, 8), checkOutAt: at(1, 9), fee: 20, status: 'completed', paymentStatus: 'unpaid' });
-    await db.transactions.add({ id: 'U2', plateNumber: 'U2', checkInAt: at(1, 8), checkOutAt: at(1, 10), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 10) });
+    await db.transactions.add({ id: 'U2', plateNumber: 'U2', checkInAt: at(1, 8), checkOutAt: at(1, 10), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 10), firstPaidAt: at(1, 10) });
     await db.transactions.add({ id: 'U3', plateNumber: 'U3', checkInAt: at(0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
-    const buckets = await R.getDayBuckets(now - 1 * 86400000, now);
-    expect(buckets[0].unpaid).toBe(1);
-    expect(buckets[1].unpaid).toBe(0);
+    const s = await R.getBusinessOverview(now);
+    // Both U1 and U2 entered and left yesterday, but only U2 settled.
+    expect(s.today).toEqual({ revenue: 0, bikes: 0 });
+    expect(s.todayDelta).toBe('-₱20 vs yesterday');
+    expect(s.parkedNow).toBe(1);
+    expect(s.unpaid.count).toBe(2);
   });
   it('re-settle is a no-op: paidAt frozen, revenue stable', async () => {
     const t = await R.create({ plateNumber: 'NS1' }); await R.checkout(t.id);
@@ -163,7 +166,9 @@ describe('parking', () => {
   });
   it('legacy rows without firstPaidAt fall back to paidAt, backup preserves the field', async () => {
     const now = Date.now();
-    await db.transactions.add({ id: 'L1', plateNumber: 'L1', checkInAt: now - 3600000, checkOutAt: now - 1800000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: now - 1800000 });
+    // Pinned to local hours so the assertion holds even when the suite runs near midnight.
+    const local = (h: number, m: number) => { const d = new Date(now); d.setHours(h, m, 0, 0); return d.getTime(); };
+    await db.transactions.add({ id: 'L1', plateNumber: 'L1', checkInAt: local(8, 0), checkOutAt: local(9, 0), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: local(9, 0) });
     expect((await R.getDailyStats()).collectedToday).toBe(20);
     const b = await R.exportBackup();
     expect(b.transactions.find(t => t.id === 'L1')?.paidAt).toBeDefined();

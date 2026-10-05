@@ -412,7 +412,17 @@ Sum `fee` for transactions whose:
 paymentStatus === "paid"
 ```
 
-and whose `paidAt` falls within today.
+and whose **revenue day** falls within today, where the revenue day is:
+
+```text
+firstPaidAt ?? paidAt
+```
+
+`firstPaidAt` is stamped the first time a record is ever settled and is
+never rewritten. Undoing a payment and settling again therefore cannot
+move already-recognized revenue to a later day; the money stays on the
+day it was originally collected. Legacy rows without `firstPaidAt` fall
+back to `paidAt`.
 
 ### Operations Header Collected (Lot-State Gauge)
 
@@ -421,7 +431,9 @@ The Operations screen shows `collectedToday + collectedHeld`, where
 revenue day (`firstPaidAt ?? paidAt`) is before today. Overnight holds
 stay visible across midnight; checked-out bikes leave the gauge.
 Daily revenue reporting (Analytics, History, downloaded reports) always
-uses the Collected Today rule above and is unaffected.
+uses the same revenue-day rule above and is unaffected. Analytics buckets
+revenue by that revenue day, while its **bikes** count is bucketed
+by `checkOutAt`.
 
 Use local device time consistently.
 

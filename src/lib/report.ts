@@ -1,4 +1,3 @@
-import type { DayStats } from '../db/parkingRepository';
 import type { ParkingTransaction } from '../types/parking';
 import { startOfDay, formatDuration, formatFullDate } from './dates';
 

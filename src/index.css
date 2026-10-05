@@ -75,45 +75,46 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
   .counter-search { width: 12rem; }
   .hist-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
   .hist-search { max-width: 28rem; }
-  .cal-date { font-size: 11px; }
-  .cal-rev { font-size: 14px; }
-  .cal-entries { font-size: 12px; }
-  .cal-best { font-size: 11px; }
 }
 
-/* Analytics — 7-day strip */
+/* Analytics */
 .counter-date { @apply text-xs font-bold uppercase tracking-widest text-gray-400; }
-.counter-pipe { @apply text-sm font-semibold text-amber-800 mt-1; }
 .analytics-title { @apply text-xs font-semibold uppercase tracking-widest text-gray-500; }
-.analytics-day { font-size: 10px; @apply text-gray-500 uppercase tracking-wide; white-space: nowrap; }
 .counter-plate.small { font-size: 1rem; }
 
-/* Analytics — KPIs + revenue chart */
+/* Analytics — KPIs */
 .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.kpi { @apply border border-gray-200 rounded-xl p-3; }
-.kpi-val { @apply text-2xl font-extrabold; font-variant-numeric: tabular-nums; }
+.kpi { @apply border border-gray-200 rounded-xl p-3; min-width: 0; }
+.kpi-val { @apply text-2xl font-extrabold; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .kpi-val.money { @apply text-green-800; }
 .kpi-val.warn { @apply text-amber-800; }
 .kpi.warn-card { @apply bg-amber-50 border-amber-200; }
 .kpi-label { @apply text-[11px] font-bold uppercase tracking-widest text-gray-500; }
+.kpi-delta { @apply text-[11px] font-semibold leading-snug mt-1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi-delta.up { @apply text-green-700; }
+.kpi-delta.down { @apply text-red-700; }
+.kpi-delta.flat { @apply text-gray-500; }
+.kpi-delta.none { @apply text-gray-400; }
+.kpi-footnote { @apply text-[11px] text-gray-500 leading-relaxed mt-2; }
 
-/* Analytics — month heatmap */
-.cal-head { @apply flex items-center justify-between mb-2; }
-.cal-nav { @apply px-3 py-2 text-lg font-bold text-gray-700 active:bg-gray-100 rounded-lg; min-width: 44px; min-height: 44px; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-dow { @apply text-center text-[10px] font-bold uppercase tracking-widest text-gray-400; }
-.cal-cell { aspect-ratio: 4/5; @apply rounded-lg bg-gray-100 text-gray-400; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-variant-numeric: tabular-nums; }
-.cal-entries { font-size: 10px; font-weight: 500; line-height: 1.3; opacity: 0.8; }
-.cal-legend { @apply text-[10px] text-gray-400 mt-1; font-variant-numeric: tabular-nums; }
-.cal-key-best { color: #fbbf24; font-weight: 800; }
-.cal-key-dot { color: #f59e0b; }
-.cal-cell.on { @apply bg-green-50 text-green-800 border-green-600; border-width: 1px; }
-.cal-date { position: absolute; top: 3px; left: 5px; font-size: 9px; font-weight: 700; line-height: 1.2; }
-.cal-rev { font-size: 12px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
-.cal-dot { position: absolute; bottom: 4px; right: 5px; width: 6px; height: 6px; border-radius: 9999px; background: #f59e0b; pointer-events: none; }
-.cal-best { position: absolute; top: 2px; right: 4px; font-size: 14px; font-weight: 800; line-height: 1; color: #fbbf24; pointer-events: none; }
-.cal-cell.today { outline: 2px solid #065f46; outline-offset: 1px; }
-.cal-cell.future { opacity: 0.35; }
+/* Analytics — sections */
+.an-section { @apply text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2; }
+
+/* Analytics — overview rows + ledger */
+.ov-card { @apply border border-gray-200 rounded-xl px-3 py-1; }
+.ov-row { @apply flex items-baseline justify-between gap-2 py-1.5 text-sm text-gray-700; font-variant-numeric: tabular-nums; }
+.ov-row + .ov-row { border-top: 1px solid #f3f4f6; }
+.ov-row strong { @apply text-base font-extrabold text-gray-900; }
+.ov-link { @apply text-sm font-bold text-gray-900 underline underline-offset-2; flex: none; }
+.ov-amount-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ov-amount-row .kpi-val { min-width: 0; }
+.ov-debtors { @apply mt-2 border-t border-amber-200; }
+.ov-debtor { @apply flex items-baseline gap-2 py-2 text-sm active:bg-amber-100; font-variant-numeric: tabular-nums; }
+.ov-debtor + .ov-debtor { border-top: 1px solid #fde68a; }
+.ov-debtor-plate { @apply font-extrabold text-gray-900; white-space: nowrap; }
+.ov-debtor-flag { @apply text-[11px] font-bold text-amber-800; white-space: nowrap; }
+.ov-debtor-meta { margin-left: auto; @apply text-gray-600 whitespace-nowrap; }
+
 
 .report-row { @apply flex items-center justify-between gap-2 border-b border-gray-100 py-2; }
 .report-row:last-child { border-bottom: none; }
@@ -123,6 +124,8 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .hist { @apply space-y-3; }
 .hist-head h1 { @apply text-xl font-bold; }
 .hist-sub { @apply text-sm text-gray-500; font-variant-numeric: tabular-nums; }
+.hist-due { @apply font-bold text-amber-800; }
+.hist-parked { @apply ml-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 rounded px-1 py-0.5; }
 .hist-toolbar { @apply flex flex-col gap-2; }
 .hist-search { @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900; }
 .hist-filter { @apply flex flex-wrap gap-1 bg-gray-100 rounded-xl p-1 w-fit; }
