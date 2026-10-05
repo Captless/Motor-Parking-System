@@ -4,13 +4,13 @@ import { getBusinessOverview } from '../../db/parkingRepository';
 import { formatFullDate } from '../../lib/dates';
 import { formatPeso } from '../../lib/currency';
 import { useToday } from '../../lib/useToday';
-import type { BusinessSnapshot, Tone } from './businessAnalytics';
+import { SCOPES, type BusinessSnapshot, type ScopeId } from './businessAnalytics';
 
 const count = (n: number): string => n.toLocaleString('en-PH');
-const toneClass = (t: Tone): string => `kpi-delta ${t}`;
 
 export default function Analytics() {
   const todayTick = useToday();
+  const [scope, setScope] = useState<ScopeId>('today');
   const [snap, setSnap] = useState<BusinessSnapshot | null>(null);
   const [err, setErr] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
@@ -19,14 +19,14 @@ export default function Analytics() {
     let live = true;
     (async () => {
       try {
-        const next = await getBusinessOverview(Date.now());
+        const next = await getBusinessOverview(scope, Date.now());
         if (live) { setSnap(next); setErr(''); }
       } catch (e) {
         if (live) setErr(e instanceof Error ? e.message : 'Could not load analytics.');
       }
     })();
     return () => { live = false; };
-  }, [todayTick, reloadKey]);
+  }, [scope, todayTick, reloadKey]);
 
   if (err) return (
     <div className="space-y-4">
@@ -46,31 +46,32 @@ export default function Analytics() {
         <p className="hist-sub">{formatFullDate(Date.now())} · business overview</p>
       </header>
 
+      <div className="hist-filter" role="group" aria-label="Reporting scope">
+        {SCOPES.map(s => (
+          <button key={s.id} type="button" onClick={() => setScope(s.id)} aria-pressed={scope === s.id}
+            className={`hist-chip${scope === s.id ? ' active' : ''}`}>
+            {s.tab}
+          </button>
+        ))}
+      </div>
+
       {!snap ? <p className="counter-sub">Loading…</p> : (
         <>
           {!snap.hasRecords && <p className="counter-sub">No records yet. Completed and settled records will appear here.</p>}
 
-          <section aria-label="Today">
+          <section aria-label="Summary">
             <div className="kpi-grid">
               <div className="kpi">
-                <p className="kpi-label">Collected today</p>
-                <p className="kpi-val money">{formatPeso(snap.today.revenue)}</p>
-                {snap.todayDelta ? <p className={toneClass(snap.todayTone)}>{snap.todayDelta}</p> : <p className="kpi-delta none">no activity yet</p>}
+                <p className="kpi-label">Collected {snap.summary.label}</p>
+                <p className="kpi-val money">{formatPeso(snap.summary.revenue)}</p>
               </div>
               <div className="kpi">
-                <p className="kpi-label">Bikes served today</p>
-                <p className="kpi-val">{count(snap.today.bikes)}</p>
-                <p className="kpi-delta none">{count(snap.parkedNow)} parked now</p>
+                <p className="kpi-label">Bikes served {snap.summary.label}</p>
+                <p className="kpi-val">{count(snap.summary.bikes)}</p>
+                {snap.scope === 'today'
+                  ? <p className="kpi-delta none">{count(snap.parkedNow)} parked now</p>
+                  : <p className="kpi-delta none">avg {formatPeso(snap.summary.avgTicket)}/bike</p>}
               </div>
-            </div>
-          </section>
-
-          <section aria-label="This week">
-            <h2 className="an-section">This week</h2>
-            <div className="ov-card">
-              <div className="ov-row"><span>Week so far</span><strong>{formatPeso(snap.week.revenue)}</strong></div>
-              {snap.weekDelta && <div className="ov-row"><span>vs last week</span><span className={toneClass(snap.weekTone)}>{snap.weekDelta}</span></div>}
-              <div className="ov-row"><span>Bikes served</span><span>{count(snap.week.bikes)} · avg {formatPeso(snap.week.avgTicket)}/bike</span></div>
             </div>
           </section>
 

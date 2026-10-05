@@ -48,7 +48,7 @@ const backupLabel = (ts: number | null): string => {
   const downloadDay = async (day: number) => {
     try {
       const rows = await getDayRecords(day);
-      const mime = format === 'csv' ? 'text/csv' : format === 'html' ? 'text/html' : 'text/plain';
+      const mime = format === 'csv' ? 'text/csv' : format === 'html' ? 'text/html' : 'text/plain;charset=utf-8';
       const body = format === 'csv' ? dayReportCSV(day, rows) : format === 'html' ? dayReportHTML(day, rows) : dayReportTXT(day, rows);
       downloadTextFile(reportFilename(day, format), body, mime);
       toast.ok('Report downloaded.');

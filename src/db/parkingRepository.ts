@@ -1,13 +1,13 @@
 import { db, ensureSeed } from './database';
 import type { AppSettings, BackupFile, DailyStats, ParkingTransaction } from '../types/parking';
-import { buildBusinessSnapshot, type BusinessSnapshot } from '../features/analytics/businessAnalytics';
+import { buildBusinessSnapshot, type BusinessSnapshot, type ScopeId } from '../features/analytics/businessAnalytics';
 import { normalizePlate, isValidPlate } from '../lib/validation';
 import { inDay, startOfDay } from '../lib/dates';
 /** Day a transaction's revenue is recognized: the first settlement, never relocated by undo/re-settle. */
 export const revenueDay = (t: ParkingTransaction): number | undefined => t.firstPaidAt ?? t.paidAt;
-/** One read, one aggregation pass — every Analytics surface derives from this snapshot. */
-export async function getBusinessOverview(now = Date.now()): Promise<BusinessSnapshot> {
-  return buildBusinessSnapshot({ txs: await db.transactions.toArray(), now });
+/** One read, one aggregation pass — every Overview surface derives from this snapshot. */
+export async function getBusinessOverview(scope: ScopeId, now = Date.now()): Promise<BusinessSnapshot> {
+  return buildBusinessSnapshot({ txs: await db.transactions.toArray(), scope, now });
 }
 export async function getActiveDays(): Promise<number[]> {
   const all = await db.transactions.toArray();

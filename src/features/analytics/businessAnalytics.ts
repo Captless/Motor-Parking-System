@@ -1,9 +1,15 @@
 import type { ParkingTransaction } from '../../types/parking';
 import { formatPeso } from '../../lib/currency';
 import { normalizePlate } from '../../lib/validation';
-import { addDays, eachDay, startOfDay, weekStart } from '../../lib/dates';
+import { addDays, eachDay, startOfDay } from '../../lib/dates';
 
-export type Tone = 'up' | 'down' | 'flat' | 'none';
+export type ScopeId = 'today' | '7d' | '30d' | 'all';
+export const SCOPES: readonly { id: ScopeId; tab: string; label: string }[] = [
+  { id: 'today', tab: 'Today', label: 'today' },
+  { id: '7d', tab: '7D', label: 'last 7 days' },
+  { id: '30d', tab: '30D', label: 'last 30 days' },
+  { id: 'all', tab: 'All', label: 'all time' },
+];
 
 /** Half-open local-day window `[from, to)`. */
 export interface BusinessWindow { from: number; to: number }
@@ -11,22 +17,29 @@ export interface BusinessWindow { from: number; to: number }
 export interface BusinessDayMetrics { day: number; revenue: number; motorcycles: number; entries: number; }
 export interface BusinessSummary { revenue: number; motorcycles: number; activeDays: number; avgDailyRevenue: number; }
 
-export interface DayTotal { revenue: number; bikes: number; }
-export interface WeekTotal { revenue: number; bikes: number; avgTicket: number; }
+export interface ScopeSummary { id: ScopeId; label: string; revenue: number; bikes: number; avgTicket: number; }
 export interface Debtor { id: string; plate: string; days: number; amount: string; repeat: boolean; }
 
 export interface BusinessSnapshot {
   now: number;
-  today: DayTotal;
-  todayDelta: string | null;
-  todayTone: Tone;
-  week: WeekTotal;
-  weekDelta: string | null;
-  weekTone: Tone;
+  scope: ScopeId;
+  summary: ScopeSummary;
   unpaid: { amount: string; count: number; oldestDays: number | null; debtors: Debtor[] };
   parkedNow: number;
   invalidRecords: number;
   hasRecords: boolean;
+}
+
+/** Trailing scopes always include today; `all` starts at the earliest activity. */
+export function resolveScope(scope: ScopeId, now: number, earliestDay: number | null): BusinessWindow {
+  const today = startOfDay(now);
+  const to = addDays(today, 1);
+  switch (scope) {
+    case 'today': return { from: today, to };
+    case '7d': return { from: addDays(today, -6), to };
+    case '30d': return { from: addDays(today, -29), to };
+    case 'all': return { from: earliestDay ?? today, to };
+  }
 }
 
 /** Local day number for a timestamp, or null when the value is missing or unusable. */
@@ -88,52 +101,14 @@ export function summarizeWindow(days: Map<number, BusinessDayMetrics>, w: Busine
   return { revenue, motorcycles, activeDays, avgDailyRevenue: activeDays > 0 ? Math.round(revenue / activeDays) : 0 };
 }
 
-export interface ComparisonResult { deltaText: string | null; tone: Tone; }
-
-const signed = (n: number, fmt: (v: number) => string): string => `${n > 0 ? '+' : n < 0 ? '-' : ''}${fmt(Math.abs(n))}`;
-const count = (v: number): string => v.toLocaleString('en-PH');
-
-export function compareValue(
-  cur: number, prev: number | null, baseline: string,
-  fmt: (v: number) => string = count, zeroBaselineNote?: string,
-): ComparisonResult {
-  if (prev == null) return { deltaText: null, tone: 'none' };
-  if (cur === 0 && prev === 0) return { deltaText: null, tone: 'none' };
-  const delta = cur - prev;
-  if (delta === 0) return { deltaText: `No change vs ${baseline}`, tone: 'flat' };
-  if (prev === 0) {
-    return { deltaText: `${signed(cur, fmt)} · no ${zeroBaselineNote ?? 'prior total'} vs ${baseline}`, tone: 'none' };
-  }
-  const rounded = Math.round(((delta / prev) * 100) * 10) / 10;
-  const body = rounded === 0 ? signed(delta, fmt) : `${signed(delta, fmt)} · ${signed(rounded, v => `${v.toFixed(1)}%`)}`;
-  return { deltaText: `${body} vs ${baseline}`, tone: delta > 0 ? 'up' : 'down' };
-}
-
-/** Today vs yesterday, amount only — percentages lie on small daily numbers. */
-function compareDay(cur: number, prev: number): ComparisonResult {
-  if (cur === prev) return { deltaText: cur === 0 ? null : 'No change vs yesterday', tone: cur === 0 ? 'none' : 'flat' };
-  const delta = cur - prev;
-  return { deltaText: `${signed(delta, formatPeso)} vs yesterday`, tone: delta > 0 ? 'up' : 'down' };
-}
-
-export function buildBusinessSnapshot(input: { txs: readonly ParkingTransaction[]; now?: number }): BusinessSnapshot {
+export function buildBusinessSnapshot(input: { txs: readonly ParkingTransaction[]; scope: ScopeId; now?: number }): BusinessSnapshot {
   const now = input.now ?? Date.now();
-  const { days, invalidRecords, unpaidAmount, unpaidCount } = aggregateDays(input.txs);
+  const { days, invalidRecords, unpaidAmount, unpaidCount, earliestDay } = aggregateDays(input.txs);
   const today = startOfDay(now);
-  const yesterday = addDays(today, -1);
-  const t = days.get(today);
-  const y = days.get(yesterday);
-  const todayRev = t?.revenue ?? 0;
-  const todayBikes = t?.motorcycles ?? 0;
-  const dayCmp = compareDay(todayRev, y?.revenue ?? 0);
-
-  const ws = weekStart(now);
-  const weekW: BusinessWindow = { from: ws, to: addDays(today, 1) };
-  const prevW: BusinessWindow = { from: addDays(ws, -7), to: ws };
-  const weekRev = sumIn(days, weekW, m => m.revenue);
-  const weekBikes = sumIn(days, weekW, m => m.motorcycles);
-  const prevRev = sumIn(days, prevW, m => m.revenue);
-  const weekCmp = compareValue(weekRev, prevRev, 'last week', formatPeso, 'prior revenue');
+  const window = resolveScope(input.scope, now, earliestDay);
+  const label = SCOPES.find(s => s.id === input.scope)!.label;
+  const revenue = sumIn(days, window, m => m.revenue);
+  const bikes = sumIn(days, window, m => m.motorcycles);
 
   let oldestDays: number | null = null;
   const debtors: Debtor[] = [];
@@ -164,12 +139,8 @@ export function buildBusinessSnapshot(input: { txs: readonly ParkingTransaction[
 
   return {
     now,
-    today: { revenue: todayRev, bikes: todayBikes },
-    todayDelta: dayCmp.deltaText,
-    todayTone: dayCmp.tone,
-    week: { revenue: weekRev, bikes: weekBikes, avgTicket: weekBikes > 0 ? Math.round(weekRev / weekBikes) : 0 },
-    weekDelta: weekCmp.deltaText,
-    weekTone: weekCmp.tone,
+    scope: input.scope,
+    summary: { id: input.scope, label, revenue, bikes, avgTicket: bikes > 0 ? Math.round(revenue / bikes) : 0 },
     unpaid: { amount: formatPeso(unpaidAmount), count: unpaidCount, oldestDays, debtors },
     parkedNow: input.txs.filter(tx => tx.status === 'parked').length,
     invalidRecords,

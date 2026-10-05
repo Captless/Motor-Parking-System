@@ -1,15 +1,8 @@
 ﻿import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { cleanup, render, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { weekStart, addDays } from '../../lib/dates';
 import { db } from '../../db/database';
 import Analytics from './Analytics';
-
-const H = 3600000;
-const mk = (dayStart: number, id: string, fee: number) => ({
-  id, plateNumber: id, checkInAt: dayStart + 8 * H, checkOutAt: dayStart + 9 * H, fee,
-  status: 'completed', paymentStatus: 'paid', paidAt: dayStart + 9 * H, firstPaidAt: dayStart + 9 * H,
-});
 
 const at = (dayOff: number, h: number) => { const d = new Date(Date.now() - dayOff * 86400000); d.setHours(h, 10, 0, 0); return d.getTime(); };
 const peso = (n: number) => `₱${n.toLocaleString('en-PH')}`;
@@ -26,22 +19,26 @@ const paid = (id: string, dayOff: number, fee = 20) => ({
 });
 
 const show = () => render(<MemoryRouter><Analytics /></MemoryRouter>).container;
+const tab = async (c: HTMLElement, name: string) => {
+  fireEvent.click(await within(c).findByRole('button', { name }));
+};
 
-describe('Analytics overview', () => {
+describe('Overview scopes', () => {
   afterEach(() => cleanup());
 
   beforeEach(async () => {
     await seed([paid('AAA 1', 0, 60), paid('BBB 2', 1, 40)]);
   });
 
-  it('shows the today hero against yesterday with parked-now count', async () => {
+  it('defaults to Today with parked-now and no comparisons anywhere', async () => {
     const c = show();
-    await within(c).findByText('Collected today');
-    const hero = within(c).getByText('Collected today').parentElement as HTMLElement;
-    expect(within(hero).getByText(peso(60))).toBeTruthy();
-    expect(within(hero).getByText('+₱20 vs yesterday')).toBeTruthy();
+    const today = await within(c).findByRole('button', { name: 'Today' });
+    expect(today.getAttribute('aria-pressed')).toBe('true');
+    expect(await within(c).findByText('Collected today')).toBeTruthy();
+    expect(within(c).getByText(peso(60))).toBeTruthy();
     expect(within(c).getByText('Bikes served today')).toBeTruthy();
     expect(within(c).getByText('0 parked now')).toBeTruthy();
+    expect(within(c).queryByText(/vs yesterday|vs last|prior period|activity yet/)).toBeNull();
   });
 
   it('counts currently parked motorcycles in the hero', async () => {
@@ -52,31 +49,47 @@ describe('Analytics overview', () => {
     expect(await within(c).findByText('1 parked now')).toBeTruthy();
   });
 
-  it('shows week to date against the equivalent prior stretch', async () => {
-    const ws = weekStart(Date.now());
-    await seed([mk(ws, 'W1', 60), mk(ws, 'W2', 40), mk(addDays(ws, -3), 'W3', 30)]);
+  it('7D scopes to the trailing 7 days with per-bike average', async () => {
+    await seed([paid('A', 0, 60), paid('B', 6, 40), paid('C', 7, 30)]);
     const c = show();
-    await within(c).findByText('This week');
-    const week = within(c).getByText('This week').closest('section') as HTMLElement;
-    expect(within(week).getByText(peso(100))).toBeTruthy();
-    expect(within(week).getByText('+₱70 · +233.3% vs last week')).toBeTruthy();
-    expect(within(week).getByText('2 · avg ₱50/bike')).toBeTruthy();
+    await tab(c, '7D');
+    await waitFor(() => expect(within(c).getByText('Collected last 7 days')).toBeTruthy());
+    expect(within(c).getByText(peso(100))).toBeTruthy();
+    expect(within(c).getByText('Bikes served last 7 days')).toBeTruthy();
+    expect(within(c).getByText('avg ₱50/bike')).toBeTruthy();
+    expect(within(c).queryByText(/parked now/)).toBeNull();
   });
 
-  it('keeps unpaid beside revenue with the oldest age and a history link', async () => {
+  it('30D scopes to the trailing 30 days', async () => {
+    await seed([paid('A', 0, 60), paid('B', 29, 25), paid('C', 30, 999)]);
+    const c = show();
+    await tab(c, '30D');
+    await waitFor(() => expect(within(c).getByText('Collected last 30 days')).toBeTruthy());
+    expect(within(c).getByText(peso(85))).toBeTruthy();
+    expect(within(c).getByText('avg ₱43/bike')).toBeTruthy();
+  });
+
+  it('All covers everything with no scope-only sub-lines', async () => {
+    await seed([paid('A', 0, 60), paid('B', 400, 10)]);
+    const c = show();
+    await tab(c, 'All');
+    await waitFor(() => expect(within(c).getByText('Collected all time')).toBeTruthy());
+    expect(within(c).getByText(peso(70))).toBeTruthy();
+    expect(within(c).getByText('Bikes served all time')).toBeTruthy();
+  });
+
+  it('keeps unpaid global across tab switches', async () => {
     await seed([paid('P1', 0, 20), {
       id: 'U1', plateNumber: 'U1', checkInAt: at(12, 7), checkOutAt: at(12, 8), fee: 35,
       status: 'completed', paymentStatus: 'unpaid',
     }]);
     const c = show();
-    const card = await within(c).findByText('Unpaid');
-    const box = card.closest('.kpi') as HTMLElement;
-    expect(within(box).getByText(peso(35))).toBeTruthy();
-    expect(within(box).getByText('1 unsettled record · oldest 12 days')).toBeTruthy();
-    const link = within(box).getByText('See all ›') as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toBe('/history?payment=unpaid');
-    const revenueKpi = within(c).getByText('Collected today').parentElement as HTMLElement;
-    expect(within(revenueKpi).getByText(peso(20))).toBeTruthy();
+    for (const name of ['7D', '30D', 'All', 'Today']) {
+      await tab(c, name);
+      await waitFor(() => expect(within(c).getByText('Unpaid')).toBeTruthy());
+      expect(within(c).getByText(peso(35))).toBeTruthy();
+      expect(within(c).getByText('1 unsettled record · oldest 12 days')).toBeTruthy();
+    }
   });
 
   it('lists oldest debtors as history links capped at three with a See all link', async () => {
@@ -92,28 +105,14 @@ describe('Analytics overview', () => {
     expect(rows[0].textContent).toContain('AAA 1');
     expect(rows[0].textContent).toContain('⚠ repeat');
     expect(rows[0].getAttribute('href')).toBe('/history?payment=unpaid&q=AAA%201');
-    expect(rows[1].textContent).toContain('CCC 3');
-    expect(rows[1].textContent).not.toContain('repeat');
-    expect(rows[2].textContent).toContain('BBB 2');
-    const more = within(c).getByText('See all ›') as HTMLAnchorElement;
-    expect(more.getAttribute('href')).toBe('/history?payment=unpaid');
-  });
-
-  it('falls back to See all when debtors lack usable dates', async () => {
-    await seed([paid('P1', 0, 20), {
-      id: 'U1', plateNumber: 'U1', checkInAt: Number.NaN, fee: 20, status: 'completed', paymentStatus: 'unpaid',
-    }]);
-    const c = show();
-    await within(c).findByText('Unpaid');
-    expect(c.querySelector('.ov-debtor')).toBeNull();
-    expect(within(c).getByText('See all ›')).toBeTruthy();
+    const seeAll = within(c).getByText('See all ›') as HTMLAnchorElement;
+    expect(seeAll.getAttribute('href')).toBe('/history?payment=unpaid');
   });
 
   it('explains empty state without inventing numbers', async () => {
     await seed([]);
     const c = show();
     expect(await within(c).findByText('No records yet. Completed and settled records will appear here.')).toBeTruthy();
-    expect(within(c).getByText('no activity yet')).toBeTruthy();
     expect(within(c).queryByText('See all ›')).toBeNull();
   });
 });

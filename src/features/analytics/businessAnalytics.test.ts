@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { ParkingTransaction } from '../../types/parking';
 import { addDays, eachDay, startOfDay } from '../../lib/dates';
 import {
-  aggregateDays, buildBusinessSnapshot, compareValue, summarizeWindow,
+  aggregateDays, buildBusinessSnapshot, resolveScope, summarizeWindow,
 } from './businessAnalytics';
 
 let seq = 0;
@@ -112,66 +112,65 @@ describe('window summaries', () => {
   });
 });
 
-describe('comparison text', () => {
-  it('shows amount, one-decimal percentage and the baseline', () => {
-    const r = compareValue(184620, 168280, 'previous 30 days', money);
-    expect(r.tone).toBe('up');
-    expect(r.deltaText).toBe('+₱16,340 · +9.7% vs previous 30 days');
+describe('scope windows', () => {
+  const span = (scope: 'today' | '7d' | '30d' | 'all') => {
+    const w = resolveScope(scope, NOW, null);
+    return eachDay(w.from, w.to - 1).length;
+  };
+  it('today covers exactly one local day', () => {
+    const w = resolveScope('today', NOW, null);
+    expect(w.from).toBe(startOfDay(NOW));
+    expect(w.to).toBe(addDays(startOfDay(NOW), 1));
+    expect(span('today')).toBe(1);
   });
-  it('flags decreases', () => {
-    const r = compareValue(800, 835, 'previous week', money);
-    expect(r.tone).toBe('down');
-    expect(r.deltaText).toBe('-₱35 · -4.2% vs previous week');
+  it('7d covers today plus the previous 6 local days', () => {
+    const w = resolveScope('7d', NOW, null);
+    expect(w.from).toBe(addDays(startOfDay(NOW), -6));
+    expect(w.to).toBe(addDays(startOfDay(NOW), 1));
+    expect(span('7d')).toBe(7);
   });
-  it('never invents a percentage when the baseline is zero', () => {
-    const r = compareValue(120, 0, 'previous 30 days', money, 'prior revenue');
-    expect(r.tone).toBe('none');
-    expect(r.deltaText).toBe('+₱120 · no prior revenue vs previous 30 days');
-    expect(r.deltaText).not.toContain('%');
+  it('30d covers today plus the previous 29 local days', () => {
+    const w = resolveScope('30d', NOW, null);
+    expect(w.from).toBe(addDays(startOfDay(NOW), -29));
+    expect(span('30d')).toBe(30);
   });
-  it('says nothing when both periods are empty', () => {
-    expect(compareValue(0, 0, 'previous 30 days', money).deltaText).toBeNull();
-  });
-  it('reports a flat period', () => {
-    const r = compareValue(500, 500, 'previous 90 days', money);
-    expect(r.tone).toBe('flat');
-    expect(r.deltaText).toBe('No change vs previous 90 days');
-  });
-  it('drops a percentage that rounds to zero', () => {
-    const r = compareValue(1000001, 1000000, 'previous 30 days', money);
-    expect(r.deltaText).toBe('+₱1 vs previous 30 days');
-  });
-  it('omits the comparison entirely when there is no baseline', () => {
-    expect(compareValue(10, null, 'previous 30 days', money).deltaText).toBeNull();
+  it('all starts at the earliest activity and falls back to today', () => {
+    const earliest = addDays(startOfDay(NOW), -400);
+    expect(resolveScope('all', NOW, earliest).from).toBe(earliest);
+    expect(resolveScope('all', NOW, null).from).toBe(startOfDay(NOW));
   });
 });
 
 describe('overview snapshot', () => {
-  it('reports today against yesterday with an amount-only delta', () => {
-    const s = buildBusinessSnapshot({ txs: [settled(0, 60), settled(1, 40)], now: NOW });
-    expect(s.today).toEqual({ revenue: 60, bikes: 1 });
-    expect(s.todayDelta).toBe('+₱20 vs yesterday');
-    expect(s.todayTone).toBe('up');
+  it('reports each scope with labels and per-scope averages', () => {
+    const txs = [settled(0, 60), settled(6, 40), settled(29, 25), settled(30, 999)];
+    const today = buildBusinessSnapshot({ txs, scope: 'today', now: NOW });
+    expect(today.scope).toBe('today');
+    expect(today.summary).toMatchObject({ label: 'today', revenue: 60, bikes: 1, avgTicket: 60 });
+    const d7 = buildBusinessSnapshot({ txs, scope: '7d', now: NOW });
+    expect(d7.summary).toMatchObject({ label: 'last 7 days', revenue: 100, bikes: 2, avgTicket: 50 });
+    const d30 = buildBusinessSnapshot({ txs, scope: '30d', now: NOW });
+    expect(d30.summary).toMatchObject({ label: 'last 30 days', revenue: 125, bikes: 3 });
+    const all = buildBusinessSnapshot({ txs, scope: 'all', now: NOW });
+    expect(all.summary).toMatchObject({ label: 'all time', revenue: 1124, bikes: 4 });
   });
-  it('reports a down day and a flat day', () => {
-    const down = buildBusinessSnapshot({ txs: [settled(0, 30), settled(1, 50)], now: NOW });
-    expect(down.todayDelta).toBe('-₱20 vs yesterday');
-    expect(down.todayTone).toBe('down');
-    const flat = buildBusinessSnapshot({ txs: [settled(0, 40), settled(1, 40)], now: NOW });
-    expect(flat.todayDelta).toBe('No change vs yesterday');
-    expect(flat.todayTone).toBe('flat');
+  it('averages zero bikes as zero, not NaN', () => {
+    const s = buildBusinessSnapshot({ txs: [], scope: '7d', now: NOW });
+    expect(s.summary).toMatchObject({ revenue: 0, bikes: 0, avgTicket: 0 });
+    expect(s.hasRecords).toBe(false);
   });
-  it('compares the week to date against the equivalent prior stretch', () => {
-    // NOW is Fri 15 May 2026; the week started Mon 11 May.
+  it('scopes unpaid to the whole lot with the oldest age in days', () => {
     const s = buildBusinessSnapshot({
-      txs: [settled(0, 60), settled(4, 40), settled(10, 30)],
-      now: NOW,
+      txs: [
+        settled(0, 60),
+        tx({ checkInAt: at(NOW, -12, 8), fee: 25, status: 'completed', checkOutAt: at(NOW, -12, 9), paymentStatus: 'unpaid' }),
+        tx({ checkInAt: at(NOW, -3, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' }),
+      ],
+      scope: 'today', now: NOW,
     });
-    expect(s.week.revenue).toBe(100);
-    expect(s.week.bikes).toBe(2);
-    expect(s.week.avgTicket).toBe(50);
-    expect(s.weekDelta).toBe('+₱70 · +233.3% vs last week');
-    expect(s.weekTone).toBe('up');
+    expect(s.unpaid.amount).toBe(money(45));
+    expect(s.unpaid.count).toBe(2);
+    expect(s.unpaid.oldestDays).toBe(12);
   });
   it('lists the oldest debtors first with repeat flags, capped at three', () => {
     const s = buildBusinessSnapshot({
@@ -182,7 +181,7 @@ describe('overview snapshot', () => {
         tx({ id: 'd4', plateNumber: 'CCC 3', checkInAt: at(NOW, -5, 8), checkOutAt: at(NOW, -5, 9), fee: 25, status: 'completed', paymentStatus: 'unpaid' }),
         settled(0, 60),
       ],
-      now: NOW,
+      scope: 'today', now: NOW,
     });
     expect(s.unpaid.count).toBe(4);
     expect(s.unpaid.debtors.length).toBe(3);
@@ -196,51 +195,39 @@ describe('overview snapshot', () => {
         tx({ id: 'e1', plateNumber: 'SAME 1', checkInAt: at(NOW, -2, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' }),
         tx({ id: 'e2', plateNumber: 'SAME 1', checkInAt: at(NOW, -2, 9), fee: 20, status: 'parked', paymentStatus: 'unpaid' }),
       ],
-      now: NOW,
+      scope: 'today', now: NOW,
     });
     expect(s.unpaid.debtors.map(d => d.id).sort()).toEqual(['e1', 'e2']);
   });
-  it('scopes unpaid to the whole lot with the oldest age in days', () => {
-    const s = buildBusinessSnapshot({
-      txs: [
-        settled(0, 60),
-        tx({ checkInAt: at(NOW, -12, 8), fee: 25, status: 'completed', checkOutAt: at(NOW, -12, 9), paymentStatus: 'unpaid' }),
-        tx({ checkInAt: at(NOW, -3, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' }),
-      ],
-      now: NOW,
-    });
-    expect(s.unpaid.amount).toBe(money(45));
-    expect(s.unpaid.count).toBe(2);
-    expect(s.unpaid.oldestDays).toBe(12);
-  });
-  it('counts currently parked motorcycles', () => {
-    const s = buildBusinessSnapshot({
-      txs: [settled(0, 60), tx({ checkInAt: at(NOW, 0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' })],
-      now: NOW,
-    });
-    expect(s.parkedNow).toBe(1);
+  it('counts currently parked motorcycles regardless of scope', () => {
+    for (const scope of ['today', '7d', '30d', 'all'] as const) {
+      const s = buildBusinessSnapshot({
+        txs: [settled(0, 60), tx({ checkInAt: at(NOW, 0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' })],
+        scope, now: NOW,
+      });
+      expect(s.parkedNow).toBe(1);
+    }
   });
   it('handles a completely empty database', () => {
-    const s = buildBusinessSnapshot({ txs: [], now: NOW });
+    const s = buildBusinessSnapshot({ txs: [], scope: 'all', now: NOW });
     expect(s.hasRecords).toBe(false);
-    expect(s.today).toEqual({ revenue: 0, bikes: 0 });
-    expect(s.todayDelta).toBeNull();
-    expect(s.weekDelta).toBeNull();
+    expect(s.summary).toMatchObject({ revenue: 0, bikes: 0, avgTicket: 0 });
     expect(s.unpaid).toEqual({ amount: money(0), count: 0, oldestDays: null, debtors: [] });
     expect(s.parkedNow).toBe(0);
   });
   it('splits settle-later revenue from its checkout day', () => {
     const settledTx = tx({ checkInAt: at(NOW, -6, 8), checkOutAt: at(NOW, -6, 9), fee: 90, paymentStatus: 'paid', paidAt: at(NOW, -1, 15), firstPaidAt: at(NOW, -1, 15) });
-    const s = buildBusinessSnapshot({ txs: [settledTx], now: NOW });
-    expect(s.today).toEqual({ revenue: 0, bikes: 0 });
-    expect(s.week.revenue).toBe(90);
-    expect(s.todayDelta).toBe('-₱90 vs yesterday');
+    const s = buildBusinessSnapshot({ txs: [settledTx], scope: 'today', now: NOW });
+    expect(s.summary).toMatchObject({ revenue: 0, bikes: 0 });
+    const week = buildBusinessSnapshot({ txs: [settledTx], scope: '7d', now: NOW });
+    expect(week.summary.revenue).toBe(90);
   });
-  it('keeps corrupt future-dated revenue out of today and the week', () => {
+  it('keeps corrupt future-dated revenue out of every scope', () => {
     const future = tx({ checkInAt: at(NOW, 0, 8), fee: 999, paymentStatus: 'paid', paidAt: addDays(startOfDay(NOW), 3), firstPaidAt: addDays(startOfDay(NOW), 3) });
-    const s = buildBusinessSnapshot({ txs: [settled(0, 50), future], now: NOW });
-    expect(s.today.revenue).toBe(50);
-    expect(s.week.revenue).toBe(50);
+    for (const scope of ['today', '7d', '30d', 'all'] as const) {
+      const s = buildBusinessSnapshot({ txs: [settled(0, 50), future], scope, now: NOW });
+      expect(s.summary.revenue).toBe(50);
+    }
   });
 });
 
@@ -256,21 +243,22 @@ describe('date boundaries', () => {
 
   it('last day of a 31 day month attributes revenue to today', () => {
     const now = new Date(2026, 0, 31, 14, 0, 0, 0).getTime(); // Sat 31 Jan 2026
-    const s = buildBusinessSnapshot({ txs: [settled2(now, 0, 50)], now });
-    expect(s.today.revenue).toBe(50);
-    expect(s.week.revenue).toBe(50);
+    const s = buildBusinessSnapshot({ txs: [settled2(now, 0, 50)], scope: 'today', now });
+    expect(s.summary.revenue).toBe(50);
+    const d7 = buildBusinessSnapshot({ txs: [settled2(now, 0, 50)], scope: '7d', now });
+    expect(d7.summary.revenue).toBe(50);
   });
 
   it('first day of a month counts only today', () => {
     const now = new Date(2026, 2, 1, 14, 0, 0, 0).getTime(); // Sun 1 Mar 2026
-    const s = buildBusinessSnapshot({ txs: [settled2(now, 0, 40)], now });
-    expect(s.today).toEqual({ revenue: 40, bikes: 1 });
+    const s = buildBusinessSnapshot({ txs: [settled2(now, 0, 40)], scope: 'today', now });
+    expect(s.summary).toMatchObject({ revenue: 40, bikes: 1 });
   });
 
   it('leap day is a real calendar day', () => {
     const now = new Date(2028, 1, 29, 14, 0, 0, 0).getTime(); // Tue 29 Feb 2028
-    const s = buildBusinessSnapshot({ txs: [settled2(now, 0, 60)], now });
-    expect(s.today.revenue).toBe(60);
+    const s = buildBusinessSnapshot({ txs: [settled2(now, 0, 60)], scope: 'today', now });
+    expect(s.summary.revenue).toBe(60);
   });
 
   it('every day of leap February 2028 is enumerable without gaps or duplicates', () => {

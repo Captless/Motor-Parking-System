@@ -91,20 +91,13 @@ nav { padding-bottom: env(safe-area-inset-bottom); }
 .kpi.warn-card { @apply bg-amber-50 border-amber-200; }
 .kpi-label { @apply text-[11px] font-bold uppercase tracking-widest text-gray-500; }
 .kpi-delta { @apply text-[11px] font-semibold leading-snug mt-1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.kpi-delta.up { @apply text-green-700; }
-.kpi-delta.down { @apply text-red-700; }
-.kpi-delta.flat { @apply text-gray-500; }
 .kpi-delta.none { @apply text-gray-400; }
 .kpi-footnote { @apply text-[11px] text-gray-500 leading-relaxed mt-2; }
 
 /* Analytics — sections */
 .an-section { @apply text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2; }
 
-/* Analytics — overview rows + ledger */
-.ov-card { @apply border border-gray-200 rounded-xl px-3 py-1; }
-.ov-row { @apply flex items-baseline justify-between gap-2 py-1.5 text-sm text-gray-700; font-variant-numeric: tabular-nums; }
-.ov-row + .ov-row { border-top: 1px solid #f3f4f6; }
-.ov-row strong { @apply text-base font-extrabold text-gray-900; }
+/* Analytics — overview rows */
 .ov-link { @apply text-sm font-bold text-gray-900 underline underline-offset-2; flex: none; }
 .ov-amount-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .ov-amount-row .kpi-val { min-width: 0; }

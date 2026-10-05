@@ -26,7 +26,7 @@ describe('dayReportCSV', () => {
     ];
     expect(isLiveDay(day, day)).toBe(true);
     expect(isLiveDay(new Date(2026, 8, 22, 8).getTime(), day)).toBe(false);
-    expect(coverageLabel(day)).toContain('12:00 AM – 11:59 PM');
+    expect(coverageLabel(day)).toContain('12:00 AM - 11:59 PM');
     expect(activityLabel(day, rows, day)).toContain('6:04 AM');
     expect(activityLabel(day, rows, day)).toContain('10:42 PM');
     expect(activityLabel(day, [], day)).toBe('No activity recorded');
@@ -98,12 +98,14 @@ describe('dayReportCSV', () => {
       tx({ id: 'u', plateNumber: 'XYZ 2', checkInAt: day, checkOutAt: undefined, fee: 20, status: 'parked', paymentStatus: 'unpaid', paidAt: undefined }),
     ], day);
     expect(t).toContain('MOTOR PARKING');
-    expect(t).toContain('Daily Report —');
+    expect(t).toContain('Daily Report -');
     expect(t).toContain('MONEY');
-    expect(t).toContain('Total entries: 2'); expect(t).toContain('Collected: ₱20 (1 paid)'); expect(t).toContain('Unpaid: ₱20 (1 bikes');
-    expect(t).toContain('PAID (1)'); expect(t).toContain('UNPAID — NEEDS FOLLOW-UP (1)');
-    expect(t).toContain('1. ABC 1 — In 12:00 PM, Out 1:00 PM (1h 0m)');
-    expect(t).toContain('1. XYZ 2 — In 12:00 PM, Still parked');
+    expect(t).toContain('Total entries: 2'); expect(t).toContain('Collected: P20 (1 paid)'); expect(t).toContain('Unpaid: P20 (1 bikes');
+    expect(t).toContain('PAID (1)'); expect(t).toContain('UNPAID - NEEDS FOLLOW-UP (1)');
+    expect(t).toContain('1. ABC 1 - Paid - P20');
+    expect(t).toContain('   In 12:00 PM, Out 1:00 PM (1h 0m)');
+    expect(t).toContain('1. XYZ 2 - Unpaid - P20');
+    expect(t).toContain('   In 12:00 PM, Still parked');
     expect(t).toContain('Ongoing snapshot');
   });
   it('TXT handles all-settled and empty days', () => {
@@ -111,12 +113,21 @@ describe('dayReportCSV', () => {
     const settled = dayReportTXT(day, [
       tx({ id: 'n', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 3600000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: day + 3600000 }),
     ]);
-    expect(settled).toContain('Unpaid: ₱0 (all settled)');
-    expect(settled).toContain('None — all settled.');
+    expect(settled).toContain('Unpaid: P0 (all settled)');
+    expect(settled).toContain('None - all settled.');
     const empty = dayReportTXT(day, [], day);
     expect(empty).toContain('Total entries: 0');
     expect(empty).toContain('No activity recorded');
     expect(empty).toContain('PAID (0)');
+  });
+  it('TXT stays pure ASCII so any viewer decodes it identically', () => {
+    const day = new Date(2026, 8, 23, 12).getTime();
+    const t = dayReportTXT(day, [
+      tx({ id: 'n', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 86400000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: day + 86400000 }),
+      tx({ id: 'u', plateNumber: 'XYZ 2', checkInAt: day, checkOutAt: undefined, fee: 20, status: 'parked', paymentStatus: 'unpaid', paidAt: undefined }),
+    ], day);
+    expect(t).toMatch(/^[\x00-\x7F]*$/);
+    expect(t).toContain(' - overnight');
   });
   it('times read AM/PM and overnight rows are flagged', () => {
     const day = new Date(2026, 8, 23, 12).getTime();
@@ -135,13 +146,13 @@ describe('dayReportCSV', () => {
   });
   it('coverage states lot scope and TXT points revenue at Overview', () => {
     const day = new Date(2026, 8, 23, 12).getTime();
-    expect(coverageLabel(day)).toBe('Covers SEP 23, 12:00 AM – 11:59 PM · entries and checkouts that day');
+    expect(coverageLabel(day)).toBe('Covers SEP 23, 12:00 AM - 11:59 PM - entries and checkouts that day');
     const t = dayReportTXT(day, [
       tx({ id: 'n', plateNumber: 'ABC 1', checkInAt: day, checkOutAt: day + 3600000, fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: day + 3600000 }),
     ], day);
     expect(t).toContain('entries and checkouts that day');
     expect(t).toContain('Money is credited to the day it was paid. See Overview for revenue by day.');
-    expect(dayReportCSV(day, [])).toContain('COVERAGE,Covers SEP 23, 12:00 AM – 11:59 PM · entries and checkouts that day');
+    expect(dayReportCSV(day, [])).toContain('COVERAGE,Covers SEP 23, 12:00 AM - 11:59 PM - entries and checkouts that day');
   });
   it('summarizeDay foots with its own rows', () => {
     const s = summarizeDay([

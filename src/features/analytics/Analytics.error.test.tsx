@@ -9,10 +9,8 @@ import Analytics from './Analytics';
 
 const emptySnapshot = () => ({
   now: Date.now(),
-  today: { revenue: 0, bikes: 0 },
-  todayDelta: null, todayTone: 'none',
-  week: { revenue: 0, bikes: 0, avgTicket: 0 },
-  weekDelta: null, weekTone: 'none',
+  scope: 'today',
+  summary: { id: 'today', label: 'today', revenue: 0, bikes: 0, avgTicket: 0 },
   unpaid: { amount: '₱0', count: 0, oldestDays: null, debtors: [] },
   parkedNow: 0,
   invalidRecords: 0, hasRecords: false,

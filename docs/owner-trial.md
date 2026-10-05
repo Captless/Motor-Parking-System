@@ -50,15 +50,16 @@
 ## 5. Business Overview
 
 - Tap **Overview** in the tab bar.
-- **Today:** what you collected today vs yesterday, bikes served, and
-  how many are parked right now.
-- **This week:** the week so far vs last week, bikes, and average
-  pesos per bike.
+- Scope tabs: **Today / 7D / 30D / All.** Both cards follow the tab —
+  collected and bikes served in that scope, nothing else. Today also
+  shows how many are parked right now; the other scopes show average
+  pesos per bike instead.
 - **Unpaid:** what you are still owed, how many records, and the oldest
-  debt in days. The oldest debtors are listed with plate, days owed,
-  and amount — ⚠ repeat flags plates with 2+ unpaid records. Tapping
-  a row jumps to History with that debtor ready to settle. **See all**
-  beside the amount jumps to History with the unpaid filter on.
+  debt in days. It never changes with the tabs. The oldest debtors are
+  listed with plate, days owed, and amount — ⚠ repeat flags plates with
+  2+ unpaid records. Tapping a row jumps to History with that debtor
+  ready to settle. **See all** beside the amount jumps to History with
+  the unpaid filter on.
 - Footnote: revenue counts settled payments on the day they were paid.
   Unpaid is never revenue.
 

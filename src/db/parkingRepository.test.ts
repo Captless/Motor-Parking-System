@@ -72,16 +72,17 @@ describe('parking', () => {
     await expect(R.importBackup({ bad: 1 })).rejects.toThrow();
     await expect(R.importBackup({ ...b, version: 99 })).rejects.toThrow();
   });
-  it('business overview buckets paid-only revenue into today with a 7-day ledger', async () => {
+  it('business overview scopes paid-only revenue per tab', async () => {
     const a = await R.create({ plateNumber: 'W1' }); await R.markPaid(a.id); await R.checkout(a.id);
     const now = Date.now();
-    const s = await R.getBusinessOverview(now);
-    expect(s.today.revenue).toBe(20);
-    expect(s.today.bikes).toBe(1);
-    expect(s.today.revenue).toBe((await R.getDailyStats(now)).collectedToday);
-    expect(s.week.revenue).toBe(20);
+    const s = await R.getBusinessOverview('today', now);
+    expect(s.scope).toBe('today');
+    expect(s.summary).toMatchObject({ label: 'today', revenue: 20, bikes: 1, avgTicket: 20 });
+    expect(s.summary.revenue).toBe((await R.getDailyStats(now)).collectedToday);
+    expect((await R.getBusinessOverview('7d', now)).summary.revenue).toBe(20);
+    expect((await R.getBusinessOverview('all', now)).summary).toMatchObject({ label: 'all time', revenue: 20 });
   });
-  it('business overview: today vs yesterday, week vs last week, global outstanding', async () => {
+  it('business overview: scoped sums with global outstanding', async () => {
     const now = Date.now();
     const mk = (plate: string, inAt: number, outAt: number | undefined, fee: number, pay: boolean, parked = false) =>
       db.transactions.add({ id: plate, plateNumber: plate, checkInAt: inAt, checkOutAt: outAt, fee, status: parked ? 'parked' : 'completed', paymentStatus: pay ? 'paid' : 'unpaid', paidAt: pay && outAt ? outAt : undefined, firstPaidAt: pay && outAt ? outAt : undefined });
@@ -91,10 +92,10 @@ describe('parking', () => {
     await mk('C3', at(0, 9), at(0, 12), 20, false);
     await mk('P1', at(8, 8), at(8, 10), 20, true);
     await mk('O1', at(0, 6), undefined, 20, false, true);
-    const r = await R.getBusinessOverview(now);
-    // Today settles 50 against nothing yesterday; the 8-day-old settle lands in the prior week.
-    expect(r.today).toEqual({ revenue: 50, bikes: 3 });
-    expect(r.week.revenue).toBe(50);
+    const r = await R.getBusinessOverview('today', now);
+    // Today settles 50 across 3 checkouts; the 8-day-old settle sits outside the trailing scopes.
+    expect(r.summary).toMatchObject({ revenue: 50, bikes: 3 });
+    expect((await R.getBusinessOverview('7d', now)).summary.revenue).toBe(50);
     expect(r.parkedNow).toBe(1);
     // Outstanding stays global: the still-parked record plus the completed unpaid one.
     expect(r.unpaid.count).toBe(2);
@@ -103,11 +104,9 @@ describe('parking', () => {
     expect(r.hasRecords).toBe(true);
     expect(r.invalidRecords).toBe(0);
   });
-  it('business overview empty lot is safe and reports no comparison', async () => {
-    const r = await R.getBusinessOverview();
-    expect(r.today).toEqual({ revenue: 0, bikes: 0 });
-    expect(r.todayDelta).toBeNull();
-    expect(r.weekDelta).toBeNull();
+  it('business overview empty lot is safe', async () => {
+    const r = await R.getBusinessOverview('today');
+    expect(r.summary).toMatchObject({ revenue: 0, bikes: 0, avgTicket: 0 });
     expect(r.unpaid).toEqual({ amount: '₱0', count: 0, oldestDays: null, debtors: [] });
     expect(r.hasRecords).toBe(false);
   });
@@ -126,10 +125,9 @@ describe('parking', () => {
     await db.transactions.add({ id: 'U1', plateNumber: 'U1', checkInAt: at(1, 8), checkOutAt: at(1, 9), fee: 20, status: 'completed', paymentStatus: 'unpaid' });
     await db.transactions.add({ id: 'U2', plateNumber: 'U2', checkInAt: at(1, 8), checkOutAt: at(1, 10), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: at(1, 10), firstPaidAt: at(1, 10) });
     await db.transactions.add({ id: 'U3', plateNumber: 'U3', checkInAt: at(0, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
-    const s = await R.getBusinessOverview(now);
+    const s = await R.getBusinessOverview('today', now);
     // Both U1 and U2 entered and left yesterday, but only U2 settled.
-    expect(s.today).toEqual({ revenue: 0, bikes: 0 });
-    expect(s.todayDelta).toBe('-₱20 vs yesterday');
+    expect(s.summary).toMatchObject({ revenue: 0, bikes: 0 });
     expect(s.parkedNow).toBe(1);
     expect(s.unpaid.count).toBe(2);
   });
