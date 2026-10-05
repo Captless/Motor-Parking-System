@@ -47,7 +47,7 @@
   The Unpaid filter also shows still-parked bikes (marked Parked) and
   totals them as Due instead of collected.
 
-## 5. Business Overview
+## 5. Overview
 
 - Tap **Overview** in the tab bar.
 - Scope tabs: **Today / 7D / 30D / All.** Both cards follow the tab —

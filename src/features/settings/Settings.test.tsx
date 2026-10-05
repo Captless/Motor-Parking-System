@@ -48,15 +48,19 @@ describe('Settings view/edit', () => {
     const el = await screen.findByText(/Last backup: 10 days ago/);
     expect(el.className).toContain('text-amber-800');
   });
+  it('shows one-line storage summary without protection trivia', async () => {
+    render(<ToastProvider><Settings /></ToastProvider>);
+    expect(await screen.findByText(/^\d+ records · backup ~.+$/)).toBeTruthy();
+    expect(screen.queryByText(/protection:/)).toBeNull();
+  });
   it('shows daily reports without lot-hours gate', async () => {
     render(<ToastProvider><Settings /></ToastProvider>);
     expect(await screen.findByText('Daily reports')).toBeTruthy();
     expect(screen.queryByLabelText('Edit lot hours')).toBeNull();
   });
-  it('shows version with last update date below it', async () => {
+  it('shows version with update date on one line', async () => {
     render(<ToastProvider><Settings /></ToastProvider>);
-    expect(await screen.findByText(/Local device only · v/)).toBeTruthy();
-    expect(await screen.findByText(/^Last update: \d{2}-\d{2}-\d{2}$/)).toBeTruthy();
+    expect(await screen.findByText(/^Local device only · v.+ \(updated \d{2}-\d{2}-\d{2}\)$/)).toBeTruthy();
   });
   it('collapses report list to 3 with show-all toggle', async () => {
     const day = (off: number) => { const d = new Date(); d.setHours(12, 0, 0, 0); return d.getTime() - off * 86400000; };

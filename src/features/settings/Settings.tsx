@@ -8,7 +8,7 @@ import { useToast } from '../../app/toast';
 export default function Settings() {
   const toast = useToast();
   const [fee, setFee] = useState(''); const [confirmClear, setConfirmClear] = useState(false);
-  const [counts, setCounts] = useState(''); const [storage, setStorage] = useState(''); const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [counts, setCounts] = useState(''); const [storage, setStorage] = useState('');
   const [days, setDays] = useState<{ day: number; rows: ParkingTransaction[] }[]>([]);
   const [format, setFormat] = useState<ReportFormat>('txt');
   const [showAll, setShowAll] = useState(false);
@@ -20,10 +20,10 @@ const backupStale = (ts: number | null): boolean => {
   return dayDiff(Date.now(), ts) > 7;
 };
 const backupLabel = (ts: number | null): string => {
-  if (ts == null) return 'Last backup: never — export one to protect your records';
+  if (ts == null) return 'Last backup: never';
   const d = dayDiff(Date.now(), ts);
   const when = d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
-  return `Last backup: ${when} (${new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' })})`;
+  return `Last backup: ${when}`;
 };
   const buildDateLabel = (): string | null => {
     const iso = typeof __BUILD_TIME__ === 'string' ? __BUILD_TIME__ : '';
@@ -34,13 +34,12 @@ const backupLabel = (ts: number | null): string => {
     try {
       const [a, h, b, ds] = await Promise.all([getActive(), getHistory(), exportBackup(), getActiveDays()]);
       if (!live()) return;
-      setCounts(`${a.length + h.length} records (${a.length} parked / ${h.length} completed)`);
+      setCounts(`${a.length + h.length} records`);
       const bytes = new Blob([JSON.stringify(b)]).size;
-      setStorage(bytes < 1024 ? `backup ~${bytes} bytes` : `backup ~${(bytes / 1024).toFixed(1)} KB`);
+      setStorage(bytes < 1024 ? `~${bytes} bytes` : `~${(bytes / 1024).toFixed(1)} KB`);
       const rows = await Promise.all(ds.map(async day => ({ day, rows: await getDayRecords(day) })));
       if (!live()) return;
       setDays(rows);
-      try { const p = await navigator.storage?.persisted?.() ?? null; if (live()) setPersisted(p); } catch { if (live()) setPersisted(null); }
     } catch (e: any) {
       if (live()) toast.err(String(e?.message ?? e));
     }
@@ -89,7 +88,7 @@ const backupLabel = (ts: number | null): string => {
     <div className="card space-y-2"><p className="font-semibold">Data & storage</p>
       <button className="w-full py-3 border rounded-xl font-semibold" onClick={doExport}>Export Backup</button>
       <label className="w-full py-3 border rounded-xl font-semibold text-center block cursor-pointer">Import Backup<input type="file" accept="application/json" className="hidden" onChange={e => e.target.files?.[0] && doImport(e.target.files[0])} /></label>
-      <div className="pt-1 space-y-1"><p className="text-sm text-gray-600">{counts || '…'}</p>{storage && <p className="text-sm text-gray-600">{storage}</p>}{persisted != null && <p className="text-sm text-gray-600">protection: {persisted ? 'on' : 'standard'}</p>}<p className={`text-sm font-semibold ${backupStale(lastBackup) ? 'text-amber-800' : 'text-gray-600'}`}>{backupLabel(lastBackup)}</p><p className="text-sm text-gray-400">Local device only · v{__APP_VERSION__}</p>{buildDate && <p className="text-sm text-gray-400">Last update: {buildDate}</p>}</div></div>
+      <div className="pt-1 space-y-1"><p className="text-sm text-gray-600">{counts ? `${counts} · backup ${storage}` : '…'}</p><p className={`text-sm font-semibold ${backupStale(lastBackup) ? 'text-amber-800' : 'text-gray-600'}`}>{backupLabel(lastBackup)}</p><p className="text-sm text-gray-400">Local device only · v{__APP_VERSION__}{buildDate ? ` (updated ${buildDate})` : ''}</p></div></div>
     <div className="card space-y-3"><p className="font-semibold">Daily reports</p>
       <div className="hist-filter" role="group" aria-label="Report format">
         {(['csv', 'html', 'txt'] as const).map(x => <button key={x} onClick={() => setFormat(x)} aria-pressed={format === x} className={`hist-chip${format === x ? ' active' : ''}`}>{x.toUpperCase()}</button>)}

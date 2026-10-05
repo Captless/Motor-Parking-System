@@ -32,7 +32,7 @@ export default function Analytics() {
     <div className="space-y-4">
       <header>
         <h1 className="text-xl font-bold">Overview</h1>
-        <p className="hist-sub">{formatFullDate(Date.now())} · business overview</p>
+        <p className="hist-sub">{formatFullDate(Date.now())}</p>
       </header>
       <p className="counter-error">{err}</p>
       <button type="button" className="hist-chip" onClick={() => setReloadKey(k => k + 1)}>Try again</button>
@@ -43,7 +43,7 @@ export default function Analytics() {
     <div className="space-y-4">
       <header>
         <h1 className="text-xl font-bold">Overview</h1>
-        <p className="hist-sub">{formatFullDate(Date.now())} · business overview</p>
+        <p className="hist-sub">{formatFullDate(Date.now())}</p>
       </header>
 
       <div className="hist-filter" role="group" aria-label="Reporting scope">
