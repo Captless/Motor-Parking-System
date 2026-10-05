@@ -12,6 +12,7 @@ export default function History() {
   const load = () => getHistory(dq, f).then(setList).catch(e => toast.err(String(e.message ?? e)));
   useEffect(() => { load(); }, [dq, f]);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const settle = async (t: ParkingTransaction) => {
     if (pendingId) return;
     setPendingId(t.id);
@@ -44,7 +45,7 @@ export default function History() {
     {list.length === 0
       ? <p className="hist-empty">{q || f !== 'all' ? 'No match. Clear search or filter.' : 'No history yet. Checked-out bikes appear here; still-parked bikes show under Unpaid.'}</p>
       : <div className="hist-scroll">
-        {groups.map(g => (
+        {(showAll ? groups : groups.slice(0, 90)).map(g => (
           <section key={g.day} className="hist-batch" aria-label={formatFullDate(g.day)}>
             <div className="hist-batch-head"><span>{formatFullDate(g.day)}</span><span>{g.items.length} · {formatPeso(g.collected)}</span></div>
             <table className="hist-table">
@@ -65,6 +66,11 @@ export default function History() {
           </section>
         ))}
         <div className="hist-grand">Total ({list.length}) · {f === 'unpaid' ? <>Due {formatPeso(due)}</> : <>{formatPeso(total)} collected</>}</div>
+        {!showAll && groups.length > 90 && (
+          <button type="button" className="hist-chip" onClick={() => setShowAll(true)}>
+            Show all {groups.length} days
+          </button>
+        )}
       </div>}
   </div>);
 }

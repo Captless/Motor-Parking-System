@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { ParkingTransaction } from '../../types/parking';
 import { addDays, eachDay, startOfDay } from '../../lib/dates';
 import {
-  aggregateDays, buildBusinessSnapshot, resolveScope, summarizeWindow,
+  aggregateDays, buildBusinessSnapshot, resolveScope,
 } from './businessAnalytics';
 
 let seq = 0;
@@ -51,13 +51,6 @@ describe('aggregation', () => {
     expect(r.unpaidCount).toBe(2);
     expect([...r.days.values()].every(d => d.revenue === 0)).toBe(true);
   });
-  it('counts unpaid records as active days but never as revenue', () => {
-    const { days } = aggregateDays([tx({ checkInAt: at(NOW, -1, 8), checkOutAt: at(NOW, -1, 9), fee: 20, paymentStatus: 'unpaid' })]);
-    const s = summarizeWindow(days, { from: addDays(startOfDay(NOW), -29), to: addDays(startOfDay(NOW), 1) });
-    expect(s.activeDays).toBe(1);
-    expect(s.revenue).toBe(0);
-    expect(s.avgDailyRevenue).toBe(0);
-  });
   it('quarantines paid records with no usable settlement timestamp', () => {
     const r = aggregateDays([tx({ checkInAt: at(NOW, -1, 8), checkOutAt: at(NOW, -1, 9), fee: 20, paymentStatus: 'paid' })]);
     expect(r.invalidRecords).toBe(1);
@@ -87,28 +80,6 @@ describe('aggregation', () => {
   it('reports the earliest activity across entry, checkout and settlement', () => {
     const r = aggregateDays([tx({ checkInAt: at(NOW, -10, 8), checkOutAt: at(NOW, -1, 9), fee: 20, paymentStatus: 'paid', paidAt: at(NOW, 0, 9), firstPaidAt: at(NOW, 0, 9) })]);
     expect(r.earliestDay).toBe(startOfDay(at(NOW, -10)));
-  });
-});
-
-describe('window summaries', () => {
-  const days = aggregateDays([
-    tx({ checkInAt: at(NOW, -4, 8), checkOutAt: at(NOW, -4, 9), fee: 100, paymentStatus: 'paid', paidAt: at(NOW, -4, 9), firstPaidAt: at(NOW, -4, 9) }),
-    tx({ checkInAt: at(NOW, -1, 8), checkOutAt: at(NOW, -1, 9), fee: 20, paymentStatus: 'paid', paidAt: at(NOW, -1, 9), firstPaidAt: at(NOW, -1, 9) }),
-    tx({ checkInAt: at(NOW, -2, 8), checkOutAt: at(NOW, -2, 9), fee: 20, paymentStatus: 'unpaid' }),
-  ]).days;
-
-  it('counts distinct active days and averages over them only', () => {
-    const s = summarizeWindow(days, { from: addDays(startOfDay(NOW), -29), to: addDays(startOfDay(NOW), 1) });
-    expect(s.revenue).toBe(120);
-    expect(s.motorcycles).toBe(3);
-    expect(s.activeDays).toBe(3);
-    expect(s.avgDailyRevenue).toBe(40);
-  });
-  it('excludes everything outside the window', () => {
-    const s = summarizeWindow(days, { from: startOfDay(at(NOW, 0)), to: addDays(startOfDay(NOW), 1) });
-    expect(s.revenue).toBe(0);
-    expect(s.activeDays).toBe(0);
-    expect(s.avgDailyRevenue).toBe(0);
   });
 });
 

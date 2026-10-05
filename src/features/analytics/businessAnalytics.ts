@@ -15,7 +15,6 @@ export const SCOPES: readonly { id: ScopeId; tab: string; label: string }[] = [
 export interface BusinessWindow { from: number; to: number }
 
 export interface BusinessDayMetrics { day: number; revenue: number; motorcycles: number; entries: number; }
-export interface BusinessSummary { revenue: number; motorcycles: number; activeDays: number; avgDailyRevenue: number; }
 
 export interface ScopeSummary { id: ScopeId; label: string; revenue: number; bikes: number; avgTicket: number; }
 export interface Debtor { id: string; plate: string; days: number; amount: string; repeat: boolean; }
@@ -89,17 +88,6 @@ const sumIn = (days: Map<number, BusinessDayMetrics>, w: BusinessWindow, pick: (
   for (const [day, m] of days) if (day >= w.from && day < w.to) total += pick(m);
   return total;
 };
-
-export function summarizeWindow(days: Map<number, BusinessDayMetrics>, w: BusinessWindow): BusinessSummary {
-  const revenue = sumIn(days, w, m => m.revenue);
-  const motorcycles = sumIn(days, w, m => m.motorcycles);
-  let activeDays = 0;
-  for (const [day, m] of days) {
-    if (day < w.from || day >= w.to) continue;
-    if (m.entries > 0 || m.motorcycles > 0 || m.revenue > 0) activeDays += 1;
-  }
-  return { revenue, motorcycles, activeDays, avgDailyRevenue: activeDays > 0 ? Math.round(revenue / activeDays) : 0 };
-}
 
 export function buildBusinessSnapshot(input: { txs: readonly ParkingTransaction[]; scope: ScopeId; now?: number }): BusinessSnapshot {
   const now = input.now ?? Date.now();

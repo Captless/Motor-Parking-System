@@ -67,6 +67,26 @@ describe('History actions', () => {
     expect(container.querySelectorAll('.hist-paid-at').length).toBe(1);
     expect(paidAt).toBe(new Date(at(1, 9)).toLocaleDateString([], { month: 'short', day: 'numeric' }));
   });
+  it('caps the day list at 90 with a show-older reveal', async () => {
+    await db.transactions.clear();
+    const base = new Date(); base.setHours(8, 10, 0, 0);
+    await db.transactions.bulkAdd(Array.from({ length: 100 }, (_, i) => {
+      const d = new Date(base.getTime() - i * 86400000);
+      return { id: `old-${i}`, plateNumber: `OLD ${i}`, checkInAt: d.getTime(), checkOutAt: d.getTime(), fee: 20, status: 'completed', paymentStatus: 'paid', paidAt: d.getTime(), firstPaidAt: d.getTime() };
+    }));
+    const { container } = show();
+    await screen.findByText('OLD 0');
+    expect(container.querySelectorAll('.hist-batch').length).toBe(90);
+    fireEvent.click(screen.getByRole('button', { name: /Show all 100 days/ }));
+    await waitFor(() => expect(container.querySelectorAll('.hist-batch').length).toBe(100));
+  });
+  it('settles a still-parked record from the Unpaid view', async () => {
+    await db.transactions.add({ id: 'pk9', plateNumber: 'PK 9', checkInAt: at(0, 7), fee: 20, status: 'parked', paymentStatus: 'unpaid' });
+    show('/history?payment=unpaid');
+    fireEvent.click(await screen.findByLabelText('Settle PK 9'));
+    await screen.findByText(/Settled ₱20 for PK 9/);
+    expect((await db.transactions.get('pk9'))?.paymentStatus).toBe('paid');
+  });
   it('presets the unpaid filter from ?payment=unpaid', async () => {
     const { container } = show('/history?payment=unpaid');
     const group = await screen.findByRole('group', { name: 'Payment filter' });

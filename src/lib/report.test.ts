@@ -154,6 +154,10 @@ describe('dayReportCSV', () => {
     expect(t).toContain('Money is credited to the day it was paid. See Overview for revenue by day.');
     expect(dayReportCSV(day, [])).toContain('COVERAGE,Covers SEP 23, 12:00 AM - 11:59 PM - entries and checkouts that day');
   });
+  it('CSV carries a BOM so spreadsheet apps decode the peso sign', () => {
+    const day = new Date(2026, 8, 23, 12).getTime();
+    expect(dayReportCSV(day, []).charCodeAt(0)).toBe(0xFEFF);
+  });
   it('summarizeDay foots with its own rows', () => {
     const s = summarizeDay([
       tx({ id: 'a', plateNumber: 'A', fee: 20, paymentStatus: 'paid' }),
