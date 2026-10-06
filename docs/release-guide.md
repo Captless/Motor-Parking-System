@@ -4,14 +4,22 @@
 
 ## Session Memory (keep current)
 
-- Current version: `1.0.3`
+- Current version: `1.0.4`
 - Live on owner's phone: `1.0.1`
-- In flight: `1.0.3` — Operations delete works on paid entries,
-  daily report defaults to TXT with split PAID/UNPAID layout,
-  silent 24h-throttled app updates, Settings "Last update" line.
+- In flight: `1.0.4` — Analytics tab rebuilt as a **Today-first overview** (renamed Overview):
+  a today hero (collected vs yesterday, bikes, parked now), a week to
+  date vs last week with average ticket, and a global unpaid card with
+  oldest-debt age linking to History. Trend line, calendar, period tabs,
+  ledger, rhythm note, averages, performance cards, insights, and
+  outlook were all cut on purpose.
   Not yet merged/deployed.
 - Shipped: `1.0.1` — visible versioning, tab-bar consistency,
   update procedure.
+- Also already committed on this branch: `1.0.3` (Operations delete for
+  paid entries, TXT-default daily report with split PAID/UNPAID,
+  silent 24h-throttled updates, Settings "Last update" line), plus the
+  History/report correctness pass (paid parked deletion, cross-day paid
+  display, report coverage/revenue wording).
 
 ## Version rules
 

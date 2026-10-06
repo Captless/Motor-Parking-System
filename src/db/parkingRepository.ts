@@ -1,70 +1,13 @@
 import { db, ensureSeed } from './database';
 import type { AppSettings, BackupFile, DailyStats, ParkingTransaction } from '../types/parking';
+import { buildBusinessSnapshot, type BusinessSnapshot, type ScopeId } from '../features/analytics/businessAnalytics';
 import { normalizePlate, isValidPlate } from '../lib/validation';
 import { inDay, startOfDay } from '../lib/dates';
-export interface DayStats { day: number; entries: number; completed: number; collected: number; unpaid: number; }
-export async function getDayStats(day: number): Promise<DayStats> {
-  const all = await db.transactions.toArray();
-  return {
-    day: startOfDay(day),
-    entries: all.filter(t => inDay(t.checkInAt, day)).length,
-    completed: all.filter(t => inDay(t.checkOutAt, day)).length,
-    collected: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), day)).reduce((s, t) => s + t.fee, 0),
-    unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
-  };
-}
-export async function getWeekStats(now = Date.now()): Promise<DayStats[]> {
-  const all = await db.transactions.toArray();
-  const out: DayStats[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const day = startOfDay(now) - i * 86400000;
-    out.push({
-      day,
-      entries: all.filter(t => inDay(t.checkInAt, day)).length,
-      completed: all.filter(t => inDay(t.checkOutAt, day)).length,
-      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), day)).reduce((s, t) => s + t.fee, 0),
-      unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
-    });
-  }
-  return out;
-}
-export async function getDayBuckets(fromDay: number, toDay: number): Promise<DayStats[]> {
-  const all = await db.transactions.toArray();
-  const out: DayStats[] = [];
-  for (let day = startOfDay(fromDay); day <= startOfDay(toDay); day += 86400000) {
-    out.push({
-      day,
-      entries: all.filter(t => inDay(t.checkInAt, day)).length,
-      completed: all.filter(t => inDay(t.checkOutAt, day)).length,
-      collected: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), day)).reduce((s, t) => s + t.fee, 0),
-      unpaid: all.filter(t => t.status === 'completed' && t.paymentStatus !== 'paid' && inDay(t.checkOutAt, day)).length,
-    });
-  }
-  return out;
-}
-export interface RangeSummary { days: DayStats[]; totalCollected: number; totalEntries: number; peakHour: PeakHour | null; outstanding: Outstanding; }
-export async function getRangeSummary(from: number, to: number): Promise<RangeSummary> {
-  const days = await getDayBuckets(from, to);
-  const all = await db.transactions.toArray();
-  const lo = startOfDay(from); const hi = startOfDay(to) + 86400000;
-  const hours = new Array(24).fill(0);
-  for (const t of all) {
-    if (t.checkInAt >= lo && t.checkInAt < hi) hours[new Date(t.checkInAt).getHours()]++;
-  }
-  let peakHour: PeakHour | null = null;
-  hours.forEach((c, h) => { if (c > 0 && (!peakHour || c > peakHour.count)) peakHour = { hour: h, count: c }; });
-  const open = all.filter(t => t.paymentStatus !== 'paid');
-  return {
-    days,
-    totalCollected: days.reduce((s, d) => s + d.collected, 0),
-    totalEntries: days.reduce((s, d) => s + d.entries, 0),
-    peakHour,
-    outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
-  };
-}
-export async function getOldestDay(): Promise<number | null> {
-  const first = await db.transactions.orderBy('checkInAt').first();
-  return first ? startOfDay(first.checkInAt) : null;
+/** Day a transaction's revenue is recognized: the first settlement, never relocated by undo/re-settle. */
+export const revenueDay = (t: ParkingTransaction): number | undefined => t.firstPaidAt ?? t.paidAt;
+/** One read, one aggregation pass — every Overview surface derives from this snapshot. */
+export async function getBusinessOverview(scope: ScopeId, now = Date.now()): Promise<BusinessSnapshot> {
+  return buildBusinessSnapshot({ txs: await db.transactions.toArray(), scope, now });
 }
 export async function getActiveDays(): Promise<number[]> {
   const all = await db.transactions.toArray();
@@ -72,8 +15,6 @@ export async function getActiveDays(): Promise<number[]> {
   for (const t of all) {
     set.add(startOfDay(t.checkInAt));
     if (t.checkOutAt != null) set.add(startOfDay(t.checkOutAt));
-    if (t.paidAt != null) set.add(startOfDay(t.paidAt));
-    if (t.firstPaidAt != null) set.add(startOfDay(t.firstPaidAt));
   }
   return [...set].sort((a, b) => b - a);
 }
@@ -85,40 +26,6 @@ export async function getDayRecords(day: number): Promise<ParkingTransaction[]> 
   const [done, active] = await Promise.all([getDayTransactions(day), getActive()]);
   const seen = new Set(done.map(t => t.id));
   return [...done, ...active.filter(t => inDay(t.checkInAt, day) && !seen.has(t.id))];
-}
-export interface PeakHour { hour: number; count: number; }
-export interface Outstanding { count: number; amount: number; }
-export interface RangeAnalytics { days: DayStats[]; totalCollected: number; totalEntries: number; totalCompleted: number; prevCollected: number; prevEntries: number; revenueDeltaPct: number | null; entriesDeltaPct: number | null; prevDailyAvg: number; peakHour: PeakHour | null; outstanding: Outstanding; }
-const deltaPct = (cur: number, prev: number): number | null => prev === 0 ? null : Math.round(((cur - prev) / prev) * 100);
-export async function getRangeAnalytics(now = Date.now()): Promise<RangeAnalytics> {
-  const [days, all] = await Promise.all([getWeekStats(now), db.transactions.toArray()]);
-  const weekAgo = now - 7 * 86400000;
-  const prev = await getWeekStats(weekAgo);
-  const prevCollected = prev.reduce((s, d) => s + d.collected, 0);
-  const prevEntries = prev.reduce((s, d) => s + d.entries, 0);
-  const from = startOfDay(now) - 6 * 86400000;
-  const to = startOfDay(now) + 86400000;
-  const hours = new Array(24).fill(0);
-  for (const t of all) {
-    if (t.checkInAt >= from && t.checkInAt < to) hours[new Date(t.checkInAt).getHours()]++;
-  }
-  let peakHour: PeakHour | null = null;
-  hours.forEach((c, h) => { if (c > 0 && (!peakHour || c > peakHour.count)) peakHour = { hour: h, count: c }; });
-  const open = all.filter(t => t.paymentStatus !== 'paid');
-  const totalCollected = days.reduce((s, d) => s + d.collected, 0);
-  const totalEntries = days.reduce((s, d) => s + d.entries, 0);
-  return {
-    days,
-    totalCollected,
-    totalEntries,
-    totalCompleted: days.reduce((s, d) => s + d.completed, 0),
-    prevCollected, prevEntries,
-    revenueDeltaPct: deltaPct(totalCollected, prevCollected),
-    entriesDeltaPct: deltaPct(totalEntries, prevEntries),
-    prevDailyAvg: Math.round(prevCollected / 7),
-    peakHour,
-    outstanding: { count: open.length, amount: open.reduce((s, t) => s + t.fee, 0) },
-  };
 }
 
 export async function getSettings(): Promise<AppSettings> {
@@ -165,7 +72,6 @@ export async function removeParked(id: string): Promise<string> {
   if (tx.status !== 'parked') throw new Error('Only parked records can be removed.');
   await db.transactions.delete(id); return tx.plateNumber;
 }
-export const revenueDay = (t: ParkingTransaction): number | undefined => t.firstPaidAt ?? t.paidAt;
 export async function markPaid(id: string): Promise<ParkingTransaction> {
   const tx = await db.transactions.get(id); if (!tx) throw new Error('Record not found.');
   if (tx.paymentStatus === 'paid') return tx;
@@ -186,6 +92,13 @@ export async function checkout(id: string): Promise<ParkingTransaction> {
 }
 export async function getHistory(search = '', payment: 'all' | 'paid' | 'unpaid' = 'all'): Promise<ParkingTransaction[]> {
   let list = await db.transactions.where('status').equals('completed').reverse().sortBy('checkOutAt');
+  if (payment === 'unpaid') {
+    // Still-parked bikes can owe too; they sort by check-in day alongside checkouts.
+    const parked = await db.transactions.where('status').equals('parked').toArray();
+    const seen = new Set(list.map(t => t.id));
+    list = [...list, ...parked.filter(t => !seen.has(t.id))]
+      .sort((a, b) => (b.checkOutAt ?? b.checkInAt) - (a.checkOutAt ?? a.checkInAt));
+  }
   const q = normalizePlate(search);
   if (q) list = list.filter(t => t.plateNumber.includes(q));
   if (payment !== 'all') list = list.filter(t => t.paymentStatus === payment);
@@ -201,6 +114,7 @@ export async function getDailyStats(now = Date.now()): Promise<DailyStats> {
     completedToday: all.filter(t => inDay(t.checkOutAt, now)).length,
     collectedToday: all.filter(t => t.paymentStatus === 'paid' && inDay(revenueDay(t), now)).reduce((s, t) => s + t.fee, 0),
     collectedHeld: lot.filter(t => t.paymentStatus === 'paid' && (revenueDay(t) ?? Infinity) < dayStart).reduce((s, t) => s + t.fee, 0),
+    outstanding: all.filter(t => t.paymentStatus !== 'paid' && Number.isFinite(t.fee)).reduce((s, t) => s + t.fee, 0),
   };
 }
 export async function exportBackup(): Promise<BackupFile> {

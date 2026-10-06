@@ -28,10 +28,12 @@
 ## 3. Understanding the numbers
 
 - **Operations header:** Parked (bikes on the lot) · Collected · Unpaid.
+  The Collected line always says whether it is "today only" or includes
+  overnight holds, and Unpaid here means the same total as Overview.
 - **Collected = today's takings plus overnight holds still parked.**
   If paid bikes stay overnight, they stay in Collected past midnight
   (shown as "incl. ₱X overnight"). Bikes that already checked out
-  leave this number — their money is counted in Analytics and reports.
+  leave this number — their money is counted in Overview and reports.
 - **A day runs 12:00 AM – 11:59 PM** (phone time). Every daily report
   prints this window at the top, so there is no guessing.
 
@@ -42,16 +44,29 @@
   tap **Settle**. Same-day payments can be undone with **Undo**.
 - History groups everything by day with paid times and totals.
   Use the search box and the All / Paid / Unpaid filter to find records.
+  The Unpaid filter also shows still-parked bikes (marked Parked) and
+  totals them as Due instead of collected.
 
-## 5. Analytics
+## 5. Overview
 
-- Tabs: **All time (first, shown by default) / Today / This week /
-  This month / This year.** This week means Monday–Sunday of the
-  current week. The cards follow the selected tab; the month
-  calendar below always shows the current month.
-- Cards: revenue · entries · peak hour · unpaid.
-- The month calendar shows each day's revenue and entries.
-  ★ marks the best day, ● marks days with unsettled payments.
+- Tap **Overview** in the tab bar.
+- Scope tabs: **Today / 7D / 30D / All.** Both cards follow the tab —
+  collected and bikes served in that scope, nothing else. Today also
+  shows how many are parked right now; the other scopes show average
+  pesos per bike instead.
+- **Month calendar:** revenue per day with bike counts — earning days are
+  faint green like paid rows, empty days gray. Gold ★ best day, rose
+  count for unpaid days. Use ‹ › to browse months (up to 6 ahead; future days show
+  gray and can't be tapped). Tap any day for its revenue, bikes, average
+  and unpaid. Selected day gets a green border.
+- **Unpaid:** what you are still owed, how many records, and the oldest
+  debt in days. It never changes with the tabs. The oldest debtors are
+  listed with plate, days owed, and amount — ⚠ repeat flags plates with
+  2+ unpaid records. Tapping a row jumps to History with that debtor
+  ready to settle. **See all** beside the amount jumps to History with
+  the unpaid filter on.
+- Footnote: revenue counts settled payments on the day they were paid.
+  Unpaid is never revenue.
 
 ## 6. Reports (2 minutes at end of day)
 

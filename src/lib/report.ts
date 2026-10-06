@@ -1,4 +1,3 @@
-import type { DayStats } from '../db/parkingRepository';
 import type { ParkingTransaction } from '../types/parking';
 import { startOfDay, formatDuration, formatFullDate } from './dates';
 
@@ -42,7 +41,7 @@ export const isLiveDay = (day: number, now = Date.now()): boolean => startOfDay(
 export const coverageLabel = (day: number): string => {
   const d = new Date(startOfDay(day));
   const mon = d.toLocaleDateString([], { month: 'short' }).toUpperCase();
-  return `Covers ${mon} ${d.getDate()}, 12:00 AM – 11:59 PM`;
+  return `Covers ${mon} ${d.getDate()}, 12:00 AM - 11:59 PM - entries and checkouts that day`;
 };
 export const activityLabel = (day: number, txs: ParkingTransaction[], now = Date.now()): string => {
   if (txs.length === 0) return 'No activity recorded';
@@ -50,7 +49,7 @@ export const activityLabel = (day: number, txs: ParkingTransaction[], now = Date
   const ends = txs.map(t => t.checkOutAt ?? t.paidAt ?? t.checkInAt).filter((v): v is number => v != null);
   const ongoing = isLiveDay(day, now) && txs.some(t => t.checkOutAt == null && t.status === 'parked');
   const tail = ongoing ? 'ongoing' : hm(Math.max(...ends));
-  return `first entry ${hm(Math.min(...starts))} → ${ongoing ? '' : 'last activity '}${tail}`;
+  return `first entry ${hm(Math.min(...starts))} -> ${ongoing ? '' : 'last activity '}${tail}`;
 };
 
 export function dayReportCSV(day: number, txs: ParkingTransaction[], now = Date.now()): string {
@@ -90,34 +89,38 @@ export function dayReportTXT(day: number, txs: ParkingTransaction[], now = Date.
   const paid = txs.filter(t => t.paymentStatus === 'paid').sort((a, b) => endOf(a) - endOf(b));
   const unpaid = txs.filter(t => t.paymentStatus !== 'paid').sort((a, b) => a.checkInAt - b.checkInAt);
   const overnight = (t: ParkingTransaction): boolean => pastDay(t.checkOutAt, day) || pastDay(t.paidAt, day);
-  const line = (t: ParkingTransaction, i: number): string => {
+  const line = (t: ParkingTransaction, i: number): string[] => {
     const stay = t.checkOutAt
       ? `Out ${hm(t.checkOutAt)} (${formatDuration(t.checkInAt, t.checkOutAt)})`
       : 'Still parked';
-    const over = overnight(t) ? ' — overnight' : '';
+    const over = overnight(t) ? ' - overnight' : '';
     const st = t.paymentStatus === 'paid' ? 'Paid' : 'Unpaid';
-    return `${i + 1}. ${t.plateNumber} — In ${hm(t.checkInAt)}, ${stay} — \u20B1${t.fee} — ${st}${over}`;
+    return [
+      `${i + 1}. ${t.plateNumber} - ${st} - P${t.fee}${over}`,
+      `   In ${hm(t.checkInAt)}, ${stay}`,
+    ];
   };
   const activity = activityLabel(day, txs, now);
   return [
     'MOTOR PARKING',
-    `Daily Report — ${titleDate}`,
+    `Daily Report - ${titleDate}`,
     `${coverageLabel(day)}`,
     `Activity: ${activity}`,
     '',
     'MONEY',
-    `Collected: \u20B1${s.collected} (${paid.length} paid)`,
-    s.unpaidCount === 0 ? 'Unpaid: \u20B10 (all settled)' : `Unpaid: \u20B1${s.unpaidAmount} (${s.unpaidCount} bikes — collect later)`,
+    `Collected: P${s.collected} (${paid.length} paid)`,
+    s.unpaidCount === 0 ? 'Unpaid: P0 (all settled)' : `Unpaid: P${s.unpaidAmount} (${s.unpaidCount} bikes - collect later)`,
     `Total entries: ${s.total}`,
     '',
     `PAID (${paid.length})`,
-    ...(paid.length > 0 ? paid.map(line) : ['None.']),
+    ...(paid.length > 0 ? paid.flatMap(line) : ['None.']),
     '',
-    `UNPAID — NEEDS FOLLOW-UP (${unpaid.length})`,
-    ...(unpaid.length > 0 ? unpaid.map(line) : ['None — all settled.']),
+    `UNPAID - NEEDS FOLLOW-UP (${unpaid.length})`,
+    ...(unpaid.length > 0 ? unpaid.flatMap(line) : ['None - all settled.']),
     '',
     'Notes: Times are h:MM AM/PM. Still parked = bike still in lot.',
-    `Generated ${generated} on device. ${live ? 'Ongoing snapshot — totals as of download.' : 'Final daily report.'}`,
+    'Money is credited to the day it was paid. See Overview for revenue by day.',
+    `Generated ${generated} on device. ${live ? 'Ongoing snapshot - totals as of download.' : 'Final daily report.'}`,
     '',
   ].join('\n');
 }
