@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { ParkingTransaction } from '../../types/parking';
-import { addDays, eachDay, startOfDay } from '../../lib/dates';
+import { addDays, eachDay, monthStart, startOfDay } from '../../lib/dates';
 import {
-  aggregateDays, buildBusinessSnapshot, resolveScope,
+  aggregateDays, buildBusinessSnapshot, buildMonthCells, resolveScope,
 } from './businessAnalytics';
 
 let seq = 0;
@@ -202,7 +202,57 @@ describe('overview snapshot', () => {
   });
 });
 
-/** Calendar boundaries are the classic source of off-by-one bugs, so pin them explicitly. */
+describe('month calendar cells', () => {
+  // NOW is Fri 15 May 2026; May 1 is a Friday -> Monday-first lead of 4.
+  const grid = (txs: Parameters<typeof buildBusinessSnapshot>[0]['txs'], cursor: number, now = NOW) => {
+    const { days } = aggregateDays(txs);
+    const unpaidByDay = new Map<number, { count: number; amount: number }>();
+    for (const t of txs) {
+      if (t.paymentStatus === 'paid') continue;
+      const d = startOfDay(t.checkInAt);
+      const u = unpaidByDay.get(d) ?? { count: 0, amount: 0 };
+      u.count += 1; u.amount += t.fee;
+      unpaidByDay.set(d, u);
+    }
+    return buildMonthCells(days, unpaidByDay, cursor, now);
+  };
+  const may = monthStart(NOW);
+
+  it('lays out the month Monday-first with revenue, bikes and unpaid per day', () => {
+    const g = grid([settled(0, 60), settled(1, 40)], may);
+    expect(g.lead).toBe(4);
+    expect(g.cells.length).toBe(31);
+    expect(g.total).toBe(100);
+    expect(g.earningDays).toBe(2);
+    const today = g.cells.find(c => c.today)!;
+    expect(today.revenue).toBe(60);
+    expect(g.cells.find(c => c.day === addDays(startOfDay(NOW), -1))).toMatchObject({ revenue: 40, bikes: 1 });
+  });
+  it('marks the best revenue day, earliest on ties', () => {
+    const g = grid([settled(0, 60), settled(2, 60), settled(5, 20)], may);
+    expect(g.bestDay).toBe(addDays(startOfDay(NOW), -2));
+  });
+  it('blanks future days and keeps corrupt future revenue out of the total', () => {
+    const future = tx({ checkInAt: at(NOW, 0, 8), fee: 999, paymentStatus: 'paid', paidAt: addDays(startOfDay(NOW), 3), firstPaidAt: addDays(startOfDay(NOW), 3) });
+    const g = grid([settled(0, 50), future], may);
+    const futureCells = g.cells.filter(c => c.future);
+    expect(futureCells.length).toBeGreaterThan(0);
+    expect(futureCells.every(c => c.revenue === 0)).toBe(true);
+    expect(g.total).toBe(50);
+    expect(g.earningDays).toBe(1);
+  });
+  it('scopes the total to the viewed month only', () => {
+    const g = grid([settled(0, 50), settled(40, 5000)], may);
+    expect(g.total).toBe(50);
+    const apr = grid([settled(0, 50), settled(40, 5000)], addDays(may, -30));
+    expect(apr.total).toBe(5000);
+  });
+  it('counts per-day unpaid by check-in day', () => {
+    const g = grid([tx({ checkInAt: at(NOW, -2, 8), fee: 20, status: 'parked', paymentStatus: 'unpaid' })], may);
+    expect(g.cells.find(c => c.day === addDays(startOfDay(NOW), -2))!.unpaid).toBe(1);
+    expect(g.cells.find(c => c.today)!.unpaid).toBe(0);
+  });
+});
 describe('date boundaries', () => {
   const day0 = (y: number, m: number, d: number) => new Date(y, m, d, 0, 0, 0, 0).getTime();
   const at2 = (base: number, dayOffset: number, hour: number) => { const d = new Date(addDays(startOfDay(base), dayOffset)); d.setHours(hour, 0, 0, 0); return d.getTime(); };

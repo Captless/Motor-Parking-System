@@ -54,6 +54,11 @@
   collected and bikes served in that scope, nothing else. Today also
   shows how many are parked right now; the other scopes show average
   pesos per bike instead.
+- **Month calendar:** revenue per day with bike counts — earning days are
+  faint green like paid rows, empty days gray. Gold ★ best day, rose
+  count for unpaid days. Use ‹ › to browse months (up to 6 ahead; future days show
+  gray and can't be tapped). Tap any day for its revenue, bikes, average
+  and unpaid. Selected day gets a green border.
 - **Unpaid:** what you are still owed, how many records, and the oldest
   debt in days. It never changes with the tabs. The oldest debtors are
   listed with plate, days owed, and amount — ⚠ repeat flags plates with

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'; import { formatShortDate, formatFullDate, startOfDay, addDays, eachDay, isToday } from './dates';
+import { describe, it, expect } from 'vitest'; import { formatShortDate, formatFullDate, formatMonth, startOfDay, addDays, addMonths, eachDay, isToday, monthStart } from './dates';
 describe('dates', () => {
   it('formatShortDate shows date without time', () => {
     const s = formatShortDate(new Date(2026, 8, 28, 15, 4).getTime());
@@ -19,5 +19,12 @@ describe('dates', () => {
     expect(new Date(addDays(from, 3)).getDate()).toBe(1);
     expect(new Date(addDays(from, 3)).getMonth()).toBe(9);
     expect(eachDay(from, addDays(from, 2)).length).toBe(3);
+  });
+  it('month helpers pin month starts, steps and labels', () => {
+    const ts = new Date(2026, 8, 15, 12).getTime();
+    expect(new Date(monthStart(ts)).getDate()).toBe(1);
+    expect(formatMonth(ts)).toBe('September 2026');
+    expect(new Date(addMonths(ts, 1)).getMonth()).toBe(9);
+    expect(new Date(addMonths(ts, -1)).getMonth()).toBe(7);
   });
 });

@@ -20,7 +20,12 @@ const paid = (id: string, dayOff: number, fee = 20) => ({
 
 const show = () => render(<MemoryRouter><Analytics /></MemoryRouter>).container;
 const tab = async (c: HTMLElement, name: string) => {
-  fireEvent.click(await within(c).findByRole('button', { name }));
+  const group = await within(c).findByRole('group', { name: 'Reporting scope' });
+  fireEvent.click(within(group).getByRole('button', { name }));
+};
+const scopeTab = async (c: HTMLElement, name: string) => {
+  const group = await within(c).findByRole('group', { name: 'Reporting scope' });
+  return within(group).getByRole('button', { name });
 };
 
 describe('Overview scopes', () => {
@@ -32,10 +37,11 @@ describe('Overview scopes', () => {
 
   it('defaults to Today with parked-now and no comparisons anywhere', async () => {
     const c = show();
-    const today = await within(c).findByRole('button', { name: 'Today' });
+    const today = await scopeTab(c, 'Today');
     expect(today.getAttribute('aria-pressed')).toBe('true');
     expect(await within(c).findByText('Collected today')).toBeTruthy();
-    expect(within(c).getByText(peso(60))).toBeTruthy();
+    const hero = within(c).getByText('Collected today').closest('section') as HTMLElement;
+    expect(within(hero).getByText(peso(60))).toBeTruthy();
     expect(within(c).getByText('Bikes served today')).toBeTruthy();
     expect(within(c).getByText('0 parked now')).toBeTruthy();
     expect(within(c).queryByText(/vs yesterday|vs last|prior period|activity yet/)).toBeNull();
@@ -54,7 +60,8 @@ describe('Overview scopes', () => {
     const c = show();
     await tab(c, '7D');
     await waitFor(() => expect(within(c).getByText('Collected last 7 days')).toBeTruthy());
-    expect(within(c).getByText(peso(100))).toBeTruthy();
+    const s7 = within(c).getByText('Collected last 7 days').closest('section') as HTMLElement;
+    expect(within(s7).getByText(peso(100))).toBeTruthy();
     expect(within(c).getByText('Bikes served last 7 days')).toBeTruthy();
     expect(within(c).getByText('avg ₱50/bike')).toBeTruthy();
     expect(within(c).queryByText(/parked now/)).toBeNull();
@@ -65,7 +72,8 @@ describe('Overview scopes', () => {
     const c = show();
     await tab(c, '30D');
     await waitFor(() => expect(within(c).getByText('Collected last 30 days')).toBeTruthy());
-    expect(within(c).getByText(peso(85))).toBeTruthy();
+    const s30 = within(c).getByText('Collected last 30 days').closest('section') as HTMLElement;
+    expect(within(s30).getByText(peso(85))).toBeTruthy();
     expect(within(c).getByText('avg ₱43/bike')).toBeTruthy();
   });
 
@@ -74,7 +82,8 @@ describe('Overview scopes', () => {
     const c = show();
     await tab(c, 'All');
     await waitFor(() => expect(within(c).getByText('Collected all time')).toBeTruthy());
-    expect(within(c).getByText(peso(70))).toBeTruthy();
+    const sa = within(c).getByText('Collected all time').closest('section') as HTMLElement;
+    expect(within(sa).getByText(peso(70))).toBeTruthy();
     expect(within(c).getByText('Bikes served all time')).toBeTruthy();
   });
 
@@ -87,7 +96,8 @@ describe('Overview scopes', () => {
     for (const name of ['7D', '30D', 'All', 'Today']) {
       await tab(c, name);
       await waitFor(() => expect(within(c).getByText('Unpaid')).toBeTruthy());
-      expect(within(c).getByText(peso(35))).toBeTruthy();
+      const box = within(c).getByText('Unpaid').closest('.kpi') as HTMLElement;
+      expect(within(box).getByText(peso(35))).toBeTruthy();
       expect(within(c).getByText('1 unsettled record · oldest 12 days')).toBeTruthy();
     }
   });
@@ -114,5 +124,52 @@ describe('Overview scopes', () => {
     const c = show();
     expect(await within(c).findByText('No records yet. Completed and settled records will appear here.')).toBeTruthy();
     expect(within(c).queryByText('See all ›')).toBeNull();
+  });
+
+  it('renders the month calendar with totals, best star and unpaid dots', async () => {
+    await seed([paid('M1', 0, 90), paid('M2', 1, 40), {
+      id: 'MU', plateNumber: 'MU', checkInAt: at(2, 8), checkOutAt: at(2, 9), fee: 20,
+      status: 'completed', paymentStatus: 'unpaid',
+    }]);
+    const c = show();
+    await within(c).findByText('Collected today');
+    const monthName = new Date().toLocaleDateString([], { month: 'long', year: 'numeric' });
+    expect(within(c).getByText(monthName)).toBeTruthy();
+    expect(c.querySelectorAll('.cal-cell').length).toBeGreaterThan(27);
+    expect(c.querySelectorAll('.cal-best').length).toBe(1);
+    expect(c.querySelectorAll('.cal-unpaid').length).toBe(1);
+    expect(c.querySelector('.cal-cell.today')).toBeTruthy();
+    const future = [...c.querySelectorAll('.cal-cell.future')] as HTMLButtonElement[];
+    expect(future.length).toBeGreaterThan(0);
+    expect(future.every(x => x.disabled)).toBe(true);
+    expect(future.every(x => /\d+/.test(x.textContent ?? ''))).toBe(true);
+  });
+
+  it('shows complete day analytics on tap and browses months up to the forward cap', async () => {
+    await seed([paid('D1', 0, 90)]);
+    const c = show();
+    await within(c).findByText('Collected today');
+    const todayCell = c.querySelector('.cal-cell.today') as HTMLButtonElement;
+    fireEvent.click(todayCell);
+    await waitFor(() => expect(c.querySelector('.cal-day')).toBeTruthy());
+    expect((c.querySelector('.cal-day') as HTMLElement).textContent).toContain(peso(90));
+    // Detail sits above the grid so it reads without scrolling.
+    const dayEl = c.querySelector('.cal-day')!;
+    const gridEl = c.querySelector('.cal-grid')!;
+    expect(dayEl.compareDocumentPosition(gridEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const cal = () => within(c.querySelector('section[aria-label="Month calendar"]') as HTMLElement);
+    const next = () => cal().getByRole('button', { name: 'Next month' }) as HTMLButtonElement;
+    // Step 6 months forward: full grids render, totals read zero, then the cap stops navigation.
+    for (let i = 0; i < 6; i++) {
+      expect(next().hasAttribute('disabled')).toBe(false);
+      fireEvent.click(next());
+    }
+    await waitFor(() => expect(next().hasAttribute('disabled')).toBe(true));
+    expect(c.querySelectorAll('.cal-cell').length).toBeGreaterThan(27);
+    expect(cal().getByText('₱0 · 0 earning days')).toBeTruthy();
+    fireEvent.click(await within(c).findByRole('button', { name: 'Previous month' }));
+    await waitFor(() => expect(cal().getByRole('button', { name: 'Today' })).toBeTruthy());
+    fireEvent.click(cal().getByRole('button', { name: 'Today' }));
+    await waitFor(() => expect(c.querySelector('.cal-cell.today')).toBeTruthy());
   });
 });

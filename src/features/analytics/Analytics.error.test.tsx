@@ -13,6 +13,7 @@ const emptySnapshot = () => ({
   summary: { id: 'today', label: 'today', revenue: 0, bikes: 0, avgTicket: 0 },
   unpaid: { amount: '₱0', count: 0, oldestDays: null, debtors: [] },
   parkedNow: 0,
+  days: new Map(), unpaidByDay: new Map(),
   invalidRecords: 0, hasRecords: false,
 });
 

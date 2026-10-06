@@ -7,5 +7,8 @@ export const isToday = (ts: number, now = Date.now()): boolean => startOfDay(ts)
 export function formatFullDate(ts: number): string { return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(); }
 export function formatShortDate(ts: number): string { return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
 export const addDays = (ts: number, n: number): number => { const d = new Date(ts); d.setDate(d.getDate() + n); d.setHours(0, 0, 0, 0); return d.getTime(); };
+export const monthStart = (ts: number): number => { const d = new Date(ts); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime(); };
+export const addMonths = (ts: number, n: number): number => { const d = new Date(ts); d.setMonth(d.getMonth() + n, 1); d.setHours(0, 0, 0, 0); return d.getTime(); };
+export function formatMonth(ts: number): string { return new Date(ts).toLocaleDateString([], { month: 'long', year: 'numeric' }); }
 /** Every local day number from `from` to `to` inclusive. */
 export function eachDay(from: number, to: number): number[] { const out: number[] = []; for (let d = startOfDay(from); d <= startOfDay(to); d = addDays(d, 1)) out.push(d); return out; }
