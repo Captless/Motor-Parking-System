@@ -1,6 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { ToastProvider } from './toast'; import ErrorBoundary from './ErrorBoundary'; import SwUpdater from './swUpdate';
+import { ACCESS_REVOKED } from '../lib/access'; import Lockout from './Lockout';
 export default function App() {
+  if (ACCESS_REVOKED) {
+    // Kill switch: lock wall only. SwUpdater stays mounted so a future
+    // build can still arrive; export keeps the owner's records reachable.
+    return (<ToastProvider><SwUpdater /><div className="mx-auto min-h-screen flex flex-col max-w-md lg:max-w-3xl">
+      <main className="flex-1 p-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-8"><ErrorBoundary><Lockout /></ErrorBoundary></main>
+    </div></ToastProvider>);
+  }
   return (<ToastProvider><SwUpdater /><div className="mx-auto min-h-screen flex flex-col max-w-md lg:max-w-3xl">
     <main className="flex-1 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(var(--tabbar-h)+0.25rem+env(safe-area-inset-bottom))] lg:p-8 lg:pb-[calc(var(--tabbar-h)+2rem+env(safe-area-inset-bottom))]"><ErrorBoundary><Outlet /></ErrorBoundary></main>
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 mx-auto flex max-w-md lg:max-w-3xl">

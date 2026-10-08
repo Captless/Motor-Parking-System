@@ -4,9 +4,11 @@
 
 ## Session Memory (keep current)
 
-- Current version: `1.0.4`
+- Current version: `1.0.5`
 - Live on owner's phone: `1.0.1`
-- In flight: `1.0.4` — Analytics tab rebuilt as a **Today-first overview** (renamed Overview):
+- In flight: `1.0.5` — kill switch: lock wall ("Service ended") with
+  Export Backup only, no nav or operations. Awaits merge/deploy.
+- Prev in flight: `1.0.4` — Analytics tab rebuilt as a **Today-first overview** (renamed Overview):
   a today hero (collected vs yesterday, bikes, parked now), a week to
   date vs last week with average ticket, and a global unpaid card with
   oldest-debt age linking to History. Trend line, calendar, period tabs,
